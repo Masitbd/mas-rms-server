@@ -1,10 +1,9 @@
-import { generateTableId } from "../../../utils/generateUniqueId";
 import { TTable } from "./table.interface";
 import { Table } from "./table.model";
 
 // ? create
 const createTableIntoDB = async (payload: TTable) => {
-  payload.tid = await generateTableId();
+  //?  payload.tid = await generateTableId();   // deprecated by murad vai it will manual input
   // now save in db with tid
   const result = await Table.create(payload);
   return result;
@@ -31,6 +30,13 @@ const updateTableIntoDB = async (id: string, payload: Partial<TTable>) => {
   return result;
 };
 
+// ! delete
+
+const deleteTableFromDB = async (id: string) => {
+  const result = await Table.findByIdAndDelete(id);
+  return result;
+};
+
 // exports
 
 export const TableServices = {
@@ -38,4 +44,5 @@ export const TableServices = {
   getAllTableListFromDB,
   getSingleTableFromDB,
   updateTableIntoDB,
+  deleteTableFromDB,
 };
