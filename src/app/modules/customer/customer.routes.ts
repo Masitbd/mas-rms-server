@@ -7,5 +7,6 @@ routes.post("/", CustomerControllers.createCustomer);
 routes.get("/", CustomerControllers.getAllCustomer);
 routes.get("/:id", CustomerControllers.getSingleCustomer);
 routes.patch("/:id", CustomerControllers.updateCustomer);
+routes.delete("/:id", CustomerControllers.deleteCustomer);
 
 export const CustomerRoutes = routes;

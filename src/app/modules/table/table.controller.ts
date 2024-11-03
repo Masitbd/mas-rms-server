@@ -56,6 +56,20 @@ const updateTable = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// ! delete
+
+const deleteTable = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const result = await TableServices.deleteTableFromDB(id);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "Table Deleted Successfully",
+    data: result,
+  });
+});
+
 //  exports
 
 export const TableControllers = {
@@ -63,4 +77,5 @@ export const TableControllers = {
   getAllTableList,
   getSingleTable,
   updateTable,
+  deleteTable,
 };
