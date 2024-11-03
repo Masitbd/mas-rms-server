@@ -53,12 +53,11 @@ const updateCustomer = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
 //  exports
 
 export const CustomerControllers = {
   createCustomer,
   getAllCustomer,
   getSingleCustomer,
-  updateCustomer
-}
+  updateCustomer,
+};
