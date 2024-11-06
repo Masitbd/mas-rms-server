@@ -37,7 +37,7 @@ const fetchSIngleUserProfileData = async (data: IGenericDecodedTokenData) => {
   if (result[0]?.status == ENUM_USER_STATUS) {
     throw new ApiError(httpStatus.FORBIDDEN, "Your acount has been rusticate");
   }
-  return result;
+  return result[0];
 };
 
 const patchProfile = async (uuid: string, profileData: Partial<IProfile>) => {

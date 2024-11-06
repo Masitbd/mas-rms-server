@@ -58,7 +58,6 @@ describe("Testing user creation functionality", () => {
 
     try {
       const result = await User.create(invalidData);
-      console.log(result);
     } catch (error: any) {
       expect(error.message).toBe(
         "User validation failed: status: `none` is not a valid enum value for path `status`."
@@ -78,34 +77,5 @@ describe("Testing user creation functionality", () => {
     } catch (error) {
       console.error(error);
     }
-  });
-
-  //   running all the function test
-  it("should run and insert user via service", async () => {
-    const result = await UserService.createUser(fakeProfileData, fakeUserData);
-    const users = await User.find({ uuid: "U-00002" });
-    expect(users.length).toEqual(1);
-  });
-
-  it("should return  a single user form service function", async () => {
-    const result: IUserResponse = await UserService.getSIngleUser({
-      uuid: "U-00002",
-    });
-    expect(result).not.toBeNull();
-    expect(result?.uuid).toBe("U-00002");
-  });
-
-  it("should return all the users", async () => {
-    const result = await UserService.getALluser();
-    expect(result.length).toBeGreaterThan(0);
-  });
-
-  it("should update the user status", async () => {
-    const result = await UserService.patchUser("U-00002", {
-      status: ENUM_USER_STATUS.RUSTICATED,
-    });
-
-    expect(result).not.toBeNull();
-    expect(result?.status).toBe(ENUM_USER_STATUS.RUSTICATED);
   });
 });

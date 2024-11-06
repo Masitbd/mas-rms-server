@@ -17,8 +17,6 @@ const createTable = catchAsync(async (req: Request, res: Response) => {
 //  get all
 
 const getAllTableList = catchAsync(async (req: Request, res: Response) => {
-  const cookie = req.headers?.authorization;
-  console.log(cookie);
   const result = await TableServices.getAllTableListFromDB();
   sendResponse(res, {
     success: true,
