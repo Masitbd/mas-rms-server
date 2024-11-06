@@ -28,6 +28,11 @@ const createUser = async (
     user.uuid = id;
     profile.uuid = id;
 
+    // Checking if th email already exists
+    const existingUser = await User.findOne({ email: user.email });
+    if (existingUser) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Email already exists");
+    }
     // Create profile using sesssin
     const newProfile = await Profile.create([profile], { session });
 
