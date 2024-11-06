@@ -10,6 +10,7 @@ import AppError from "../errors/AppError";
 import { ErrorRequestHandler } from "express";
 
 const globalErrorHandler: ErrorRequestHandler = (err, req, res, next): void => {
+  console.error(err);
   // Setting default values
   let statusCode = 500; // No need to use `Number()`
   let message = "Something went wrong!";
