@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { generateItemCategoryId } from "../../../utils/generateUniqueId";
 import { TItemCategory } from "./itemCategory.interface";
 import { ItemCategroy } from "./itemCategory.model";
@@ -13,8 +14,12 @@ const createItemCategoryIntoDB = async (payload: TItemCategory) => {
 
 //  get all
 
-const getAllItemCategoryIdFromDB = async () => {
-  const result = await ItemCategroy.find()
+const getAllItemCategoryIdFromDB = async (payload: any) => {
+  const isCondition = payload?.menuGroup
+    ? { menuGroup: payload?.menuGroup }
+    : {};
+
+  const result = await ItemCategroy.find(isCondition)
     .populate("menuGroup", "name")
     .sort({ createdAt: -1 });
   return result;

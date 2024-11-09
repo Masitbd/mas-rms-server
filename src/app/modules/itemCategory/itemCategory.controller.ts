@@ -4,6 +4,7 @@ import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 import { ItemCategoryServices } from "./itemCategory.service";
+import pick from "../../../shared/pick";
 
 const createItemCategory = catchAsync(async (req: Request, res: Response) => {
   const result = await ItemCategoryServices.createItemCategoryIntoDB(req.body);
@@ -18,7 +19,9 @@ const createItemCategory = catchAsync(async (req: Request, res: Response) => {
 //  get all
 
 const getAllItemCategory = catchAsync(async (req: Request, res: Response) => {
-  const result = await ItemCategoryServices.getAllItemCategoryIdFromDB();
+  const filterOption = pick(req.query, ["menuGroup"]);
+  const result =
+    await ItemCategoryServices.getAllItemCategoryIdFromDB(filterOption);
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
