@@ -8,6 +8,8 @@ import { ItemCategoryRoutes } from "../modules/itemCategory/itemCategory.routes"
 import { UserRoutes } from "../modules/user/user.route";
 import { AuthRoutes } from "../modules/auth/auth.route";
 import { ProfileRoutes } from "../modules/profile/profile.route";
+import { RawMaterialRoutes } from "../modules/raw-mateirals/rawMaterial.routes";
+import { RawMaterialConsumptionRouter } from "../modules/rawMaterialConsumption/rawMaterialConsumption.routes";
 
 const router = Router();
 
@@ -22,6 +24,10 @@ const moduleRoutes = [
   {
     path: "/raw-material",
     route: RawMaterialRoutes,
+  },
+  {
+    path: "/raw-material-consumption",
+    route: RawMaterialConsumptionRouter,
   },
 ];
 
