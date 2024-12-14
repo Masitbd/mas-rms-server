@@ -23,7 +23,45 @@ const getAllOrder = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getSingleOrderForPatch = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await OrderServices.getSingleOrderForPatch(req.params?.id);
+    sendResponse(res, {
+      statusCode: 200,
+      message: "Order Retrieved Successfully",
+      success: true,
+      data: result,
+    });
+  }
+);
+
+const getActiveTableList = catchAsync(async (req: Request, res: Response) => {
+  const result = await OrderServices.getActiveTableList();
+  sendResponse(res, {
+    statusCode: 200,
+    message: "Active Table List Retrieved Successfully",
+    success: true,
+    data: result,
+  });
+});
+
+const getKitchenOrderListForSingleBill = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await OrderServices.getKitchenOrderListForSingleBill(
+      req?.params?.id
+    );
+    sendResponse(res, {
+      statusCode: 200,
+      message: "Kitchen Order list Retrieved Successfully",
+      success: true,
+      data: result,
+    });
+  }
+);
 export const OrderControllers = {
   createOrder,
   getAllOrder,
+  getSingleOrderForPatch,
+  getActiveTableList,
+  getKitchenOrderListForSingleBill,
 };

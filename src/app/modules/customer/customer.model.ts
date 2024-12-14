@@ -10,7 +10,7 @@ const customerSchema = new Schema<TCustomer>(
     address: { type: String },
     dob: { type: String },
     reward: { type: Number },
-    discountCard: { type: String },
+    discountCard: { type: String, unique: true },
     discount: { type: Number },
     isActive: { type: Boolean, default: true },
   },
