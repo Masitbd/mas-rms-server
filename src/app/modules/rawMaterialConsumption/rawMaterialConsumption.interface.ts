@@ -16,4 +16,8 @@ export interface IMenuItemConsumption {
   itemCode: string;
   description: string;
   consumptions: IItemConsumption[];
+<<<<<<< HEAD
+=======
+  discount?: number;
+>>>>>>> 6e58458be48ccf4a2b8d28db10100d1c6e694887
 }

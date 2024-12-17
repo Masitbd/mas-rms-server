@@ -2,6 +2,7 @@ import { Router } from "express";
 import { TableRoutes } from "../modules/table/table.routes";
 import { CustomerRoutes } from "../modules/customer/customer.routes";
 
+
 import { MenuGroupRoutes } from "../modules/menuGroup/menuGroup.routes";
 import { ItemCategoryRoutes } from "../modules/itemCategory/itemCategory.routes";
 import { WaiterRoutes } from "../modules/waiter/waiter.routes";

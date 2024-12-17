@@ -53,7 +53,6 @@ const updateCustomer = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
 // ! delete
 
 const deleteCustomer = catchAsync(async (req: Request, res: Response) => {
@@ -67,7 +66,6 @@ const deleteCustomer = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
-
 
 //  exports
 

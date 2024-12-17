@@ -3,6 +3,7 @@ import { Customer } from "../app/modules/customer/customer.model";
 import { ItemCategroy } from "../app/modules/itemCategory/itemCategory.model";
 import { MenuGroup } from "../app/modules/menuGroup/menuGroup.model";
 import { Order } from "../app/modules/order/order.model";
+
 import { Waiter } from "../app/modules/waiter/waiter.model";
 
 //? generate menu  uiid
@@ -132,19 +133,13 @@ export const generateWaiterId = async () => {
 // ! generate unique order id
 
 const findLastOrderId = async () => {
-  const lastItem = await Order.findOne(
-    {},
-    {
-      oid: 1,
-      _id: 0,
-    }
-  )
+  const lastItem = await Order.findOne({})
     .sort({
       createdAt: -1,
     })
     .lean();
 
-  return lastItem?.oid ? lastItem.oid : undefined;
+  return lastItem?.billNo ? lastItem.billNo : undefined;
 };
 
 export const generateOrderId = async () => {
@@ -156,7 +151,7 @@ export const generateOrderId = async () => {
   const lastOrderId = await findLastOrderId();
 
   if (lastOrderId) {
-    currentId = lastOrderId;
+    currentId = lastOrderId.slice(5);
   }
 
   let incrementId = (Number(currentId) + 1).toString().padStart(3, "0");

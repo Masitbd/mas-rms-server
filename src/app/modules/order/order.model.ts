@@ -2,8 +2,8 @@ import { model, Schema } from "mongoose";
 import { TOrder } from "./order.interface";
 
 const orderShcema = new Schema<TOrder>({
-  oid: { type: String, required: true, unique: true },
-  table: {
+  billNo: { type: String, required: true, unique: true },
+  tableName: {
     type: Schema.Types.ObjectId,
     ref: "Table",
   },
@@ -14,24 +14,23 @@ const orderShcema = new Schema<TOrder>({
   sChargse: { type: Number, default: 0 },
   tSChargse: { type: Number, default: 0 },
   vat: { type: Number },
-  parchentDiscount: { type: Number },
-  cashDiscount: { type: Number },
+  percentDiscount: { type: Number },
+  discountAmount: { type: Number },
   discountCard: { type: String },
   netPayable: { type: Number },
-  cReceive: { type: Number },
-  cBack: { type: Number },
+  cashReceived: { type: Number },
+  cashBack: { type: Number },
   totalBill: { type: Number, required: true },
   totalVat: { type: Number },
   totalDiscount: { type: Number },
-  pMode: {
+  paymentMode: {
     type: String,
     required: true,
     enum: ["bkash", "cash", "bank", "nagad", "rocket", "card"],
   },
   due: { type: Number },
   guest: {
-    type: Schema.Types.ObjectId,
-    ref: "Customer",
+    type: Number,
   },
   paid: { type: Number },
   pPayment: { type: Number },
@@ -39,7 +38,7 @@ const orderShcema = new Schema<TOrder>({
     type: String,
     enum: ["bkash", "cash", "bank", "nagad", "rocket", "card"],
   },
-  remarks: { type: String },
+  remark: { type: String },
   //?
   items: [{ item: { type: Schema.Types.ObjectId, ref: "ItemCategroy" } }],
 });
