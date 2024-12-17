@@ -18,6 +18,7 @@ export type TOrder = {
   totalBill: number;
   totalVat: number;
   sChargse: number;
+  tSChargse: number;
   totalDiscount: number;
   netPayable: number;
   pMode: string;
