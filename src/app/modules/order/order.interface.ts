@@ -46,6 +46,7 @@ export type TOrder = {
   discountCard?: string;
   customer: TCustomer | IUnregisteredCustomerInfo | Types.ObjectId;
   guestType: string;
+  status?: ORDER_STATUS;
 };
 
 export type TOrderForCacheServer = TOrder & {
@@ -55,4 +56,18 @@ export type IActiveTable = {
   billNo: string;
   table: TTable;
   waiter: TWaiter;
+  orderId: string;
 };
+
+export type IPopulatedOrderData = TOrder & {
+  items: (IItems & { item: IMenuItemConsumption })[];
+  customer: TCustomer;
+  tableName: TTable;
+  waiter: TWaiter;
+};
+
+export enum ORDER_STATUS {
+  POSTED = "posted",
+  NOT_POSTED = "notPosted",
+  VOID = "void",
+}

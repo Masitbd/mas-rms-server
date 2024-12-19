@@ -68,6 +68,12 @@ const MenuItemConsumptionSchema = new Schema<IMenuItemConsumption>(
       type: [ItemConsumptionSchema],
       default: [],
     },
+    discount: {
+      type: Number,
+    },
+    waiterTip: {
+      type: Number,
+    },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt fields

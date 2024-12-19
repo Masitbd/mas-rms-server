@@ -123,15 +123,11 @@ export class orderDataValidator {
       );
     }
 
-    console.log(itemMap);
     aggregatedItems.forEach(
       (item: IMenuItemConsumption & { _id: Types.ObjectId }) => {
         const itemId = item?._id.toString();
         const itemFromMap = itemMap.get(item?._id);
         itemMap.get(itemId).rate = item.rate;
-        itemMap.get(itemId).isDiscount = item.isDiscount;
-        itemMap.get(itemId).isVat = item.isVat;
-        itemMap.get(itemId).isWaiterTips = item.isWaiterTips;
         itemMap.get(itemId).discount = item?.discount;
         this.totalBill += itemMap.get(itemId).qty * item?.rate;
       }
@@ -155,8 +151,16 @@ export class orderDataValidator {
     itemMap.forEach((item: IItems) => {
       let discountFromPercent = 0;
       let discountFromCash = 0;
+      const itemFromOrder = this.items.find(
+        (Oitem) =>
+          (Oitem.item.toString() as unknown as string) == item?.item?.toString()
+      );
+      console.log(itemFromOrder);
 
-      if (item.isDiscount && (this.percentDiscount > 0 || item?.discount > 0)) {
+      if (
+        itemFromOrder?.isDiscount &&
+        (this.percentDiscount > 0 || item?.discount > 0)
+      ) {
         if (item?.discount > 0) {
           discountFromPercent = (item?.rate * item.qty * item?.discount) / 100;
         } else {
@@ -170,7 +174,7 @@ export class orderDataValidator {
           (this.discountAmount / this.totalBill) * (item?.rate * item.qty);
       }
 
-      if (this?.vat > 0 && item?.isVat) {
+      if (this?.vat > 0 && itemFromOrder?.isVat) {
         const netPrice =
           item?.rate * item?.qty - discountFromCash - discountFromPercent;
         const vatAmount = (netPrice * this?.vat) / 100;
@@ -198,7 +202,9 @@ export class orderDataValidator {
     return serviceCharge;
   }
   async getPostableData() {
-    this.billNo = await generateOrderId();
+    if (!this.billNo) {
+      this.billNo = await generateOrderId();
+    }
     const vatAndDiscount = await this.calculateDiscountAndVat();
     const serviceCharge = await this.calculateServiceCharge();
     this.netPayable =
@@ -213,6 +219,51 @@ export class orderDataValidator {
     this.due = this.netPayable - this.paid - this.pPayment;
 
     return { ...this };
+  }
+
+  async foodArrayDiff(oldValue: (IItems & { item: Types.ObjectId })[]) {
+    if (!oldValue.length) {
+      throw new AppError(
+        StatusCodes.BAD_REQUEST,
+        "Old order items cannot be empty"
+      );
+    }
+    const oldValueMap = new Map(
+      oldValue.map((item) => [item.item.toString(), item])
+    );
+    const newValueMap = new Map(
+      this.items.map((item) => [item.item.toString(), item])
+    );
+    const diffValues: IItems[] = [];
+    const decrementDiffValues: IItems[] = [];
+    const deletedValues: IItems[] = [];
+    newValueMap.forEach((value) => {
+      if (!oldValueMap.has(value.item.toString())) {
+        diffValues.push(value);
+      } else {
+        const oldValue = oldValueMap.get(value.item.toString());
+        const newValue = newValueMap.get(value.item.toString());
+        if (oldValue?.qty && newValue?.qty) {
+          if (newValue?.qty > oldValue.qty) {
+            const diffItem = {
+              ...newValue,
+              qty: newValue.qty - oldValue.qty,
+            };
+
+            diffValues.push(diffItem);
+          }
+          if (oldValue.qty < newValue.qty) {
+            const decrementItem = {
+              ...oldValue,
+              qty: oldValue.qty - newValue.qty,
+            };
+            decrementDiffValues.push(decrementItem);
+          }
+        }
+      }
+    });
+
+    return { diffValues, decrementDiffValues };
   }
 }
 

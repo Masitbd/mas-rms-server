@@ -15,8 +15,9 @@ import { TItemCategory } from "../../itemCategory/itemCategory.interface";
 import { TMenuGroup } from "../../menuGroup/menuGroup.interface";
 import { MenuGroupServices } from "../../menuGroup/menuGroup.service";
 import { ItemCategoryServices } from "../../itemCategory/itemCategory.service";
-import { TOrder } from "../order.interface";
+import { ORDER_STATUS, TOrder } from "../order.interface";
 import { OrderServices } from "../order.services";
+import { IKitchenOrderData } from "../../kitchenOrders/kitchenOrder.interface";
 
 beforeAll(async () => {
   // Connect to your MongoDB database
@@ -107,7 +108,7 @@ describe("Testing Order Functionality", () => {
     expect(menuItemConsumptionResult).toHaveProperty("_id");
 
     // Placing Order
-    const OrderData: TOrder = {
+    let OrderData: TOrder = {
       tableName: tableResult._id,
       waiter: waiterResult._id,
       items: [
@@ -147,10 +148,28 @@ describe("Testing Order Functionality", () => {
     } as TOrder;
 
     const orderResult = await OrderServices.createOrderIntoDB(OrderData);
-    const kitchenOrderList =
-      await OrderServices.getKitchenOrderListForSingleBill(
-        orderResult?._id.toString()
-      );
+
+    OrderData.items = [{ ...OrderData.items[0], qty: 500 }];
+
+    const updateResult = await OrderServices.updateOrder(
+      orderResult?._id.toString(),
+      OrderData
+    );
+
+    OrderData.guest = 100;
+    const updateResult1 = await OrderServices.updateOrder(
+      orderResult?._id.toString(),
+      OrderData
+    );
+    const statusChanger = await OrderServices.changeStatus(
+      orderResult?._id.toString(),
+      { status: ORDER_STATUS.POSTED }
+    );
+
+    const kl = await OrderServices.getKitchenOrderListForSingleBill(
+      orderResult?._id?.toString()
+    );
+
     expect(orderResult).toHaveProperty("_id");
   });
 });

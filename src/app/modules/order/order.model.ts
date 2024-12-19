@@ -1,5 +1,5 @@
 import { model, Schema } from "mongoose";
-import { TOrder } from "./order.interface";
+import { ORDER_STATUS, TOrder } from "./order.interface";
 
 const orderSchema = new Schema<TOrder>(
   {
@@ -42,6 +42,12 @@ const orderSchema = new Schema<TOrder>(
     serviceChargeRate: { type: Number },
     discountCard: { type: String },
     guestType: { type: String },
+    due: { type: Number },
+    status: {
+      type: String,
+      enum: ["posted", "notPosted", "void"],
+      default: ORDER_STATUS.NOT_POSTED,
+    },
   },
   { timestamps: true }
 );
