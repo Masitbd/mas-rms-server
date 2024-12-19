@@ -25,14 +25,14 @@ const getDailyStatementFromDB = async (payload: Record<string, any>) => {
     {
       $lookup: {
         from: "tables",
-        localField: "table",
+        localField: "tableName",
         foreignField: "_id",
         as: "tableDetails",
       },
     },
     {
       $unwind: {
-        path: "$tableDetails", // Unwind the user details array
+        path: "$tableDetails",
         preserveNullAndEmptyArrays: true,
       },
     },
@@ -42,6 +42,13 @@ const getDailyStatementFromDB = async (payload: Record<string, any>) => {
           groupDate: {
             $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
           },
+          paymentType: {
+            $cond: {
+              if: { $gt: ["$due", 0] },
+              then: "Due",
+              else: "Paid",
+            },
+          },
           timePeriod: {
             $cond: {
               if: {
@@ -50,7 +57,7 @@ const getDailyStatementFromDB = async (payload: Record<string, any>) => {
                   { $lt: [{ $hour: "$createdAt" }, 17] },
                 ],
               },
-              then: "Lunch", // Between 7 AM and 5 PM is Lunch
+              then: "Lunch",
               else: {
                 $cond: {
                   if: {
@@ -59,43 +66,53 @@ const getDailyStatementFromDB = async (payload: Record<string, any>) => {
                       { $lt: [{ $hour: "$createdAt" }, 23] },
                     ],
                   },
-                  then: "Dinner", // Between 6 PM and 11:59 PM is Dinner
-                  else: "Other", // Other times can be grouped separately (e.g., before 7 AM)
+                  then: "Dinner",
+                  else: "Other",
                 },
               },
             },
           },
         },
-        totalPaid: { $sum: "$paid" }, // Sum total paid amount for each time period
         records: {
           $push: {
-            oid: "$oid",
+            billNo: "$billNo",
             table: "$tableDetails.name",
             guest: "$guest",
-            pMode: "$pMode",
+            pMode: "$paymentMode",
             totalBill: "$totalBill",
             totalVat: "$totalVat",
             totalScharge: "$tSChargse",
             discount: "$totalDiscount",
             pPayment: "$pPayment",
             metPayable: "$netPayable",
-
+            due: "$due",
+            paid: "$paid",
             date: "$createdAt",
           },
         },
       },
     },
     {
-      $sort: { "_id.groupDate": -1 }, // Sort by group date
-    },
-    {
       $group: {
-        _id: "$_id.groupDate", // Group by date
+        _id: {
+          groupDate: "$_id.groupDate",
+          paymentType: "$_id.paymentType",
+        },
         timePeriods: {
           $push: {
             timePeriod: "$_id.timePeriod",
-            totalPaid: { $sum: "$totalPaid" }, // Total paid in each period
             records: "$records",
+          },
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$_id.groupDate",
+        paymentGroups: {
+          $push: {
+            paymentType: "$_id.paymentType",
+            timePeriods: "$timePeriods",
           },
         },
       },
@@ -104,8 +121,11 @@ const getDailyStatementFromDB = async (payload: Record<string, any>) => {
       $project: {
         _id: 0,
         groupDate: "$_id",
-        timePeriods: 1,
+        paymentGroups: 1,
       },
+    },
+    {
+      $sort: { groupDate: -1 },
     },
   ];
 
@@ -146,6 +166,7 @@ const getDailySalesStatementSummeryFromDB = async (
               },
               totalBill: { $sum: "$totalBill" },
               totalVat: { $sum: "$totalVat" },
+              totalGuest: { $sum: "$guest" },
               totalDiscount: { $sum: "$totalDiscount" },
               totalScharge: { $sum: "$tSChargse" },
               totalPayable: { $sum: "$netPayable" },
@@ -159,8 +180,24 @@ const getDailySalesStatementSummeryFromDB = async (
         paymentModeSummary: [
           {
             $group: {
-              _id: "$pMode",
+              _id: "$paymentMode",
               total: { $sum: "$totalBill" },
+            },
+          },
+        ],
+
+        total: [
+          {
+            $group: {
+              _id: null,
+              grandTotalBill: { $sum: "$totalBill" },
+              grandTotalVat: { $sum: "$totalVat" },
+              grandTotalGuest: { $sum: "$guest" },
+              grandTotalDiscount: { $sum: "$totalDiscount" },
+              grandTotalScharge: { $sum: "$tSChargse" },
+              grandTotalPayable: { $sum: "$netPayable" },
+              grandTotalDue: { $sum: "$due" },
+              grandTotalPaid: { $sum: "$paid" },
             },
           },
         ],
@@ -170,6 +207,7 @@ const getDailySalesStatementSummeryFromDB = async (
       $project: {
         dateWiseSummary: 1,
         paymentModeSummary: 1,
+        total: { $arrayElemAt: ["$total", 0] },
       },
     },
   ];

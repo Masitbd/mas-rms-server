@@ -1,5 +1,5 @@
-import { Schema, model } from 'mongoose';
-import { IProfile } from './profile.interface';
+import { Schema, model } from "mongoose";
+import { IProfile } from "./profile.interface";
 
 const profileSchema = new Schema<IProfile>(
   {
@@ -11,7 +11,7 @@ const profileSchema = new Schema<IProfile>(
     phone: { type: String, required: true },
     uuid: { type: String, required: true, unique: true },
     age: { type: String },
-    dateOfBirth: { type: Date, required: true },
+    dateOfBirth: { type: Date },
     gender: { type: String, required: true },
   },
   {
@@ -19,4 +19,4 @@ const profileSchema = new Schema<IProfile>(
   }
 );
 
-export const Profile = model('Profile', profileSchema);
+export const Profile = model("Profile", profileSchema);
