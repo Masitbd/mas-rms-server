@@ -366,8 +366,10 @@ const getMenuGroupWithItemsFromDB = async () => {
         },
         items: {
           $push: {
-            itemName: "$itemName",
+            name: "$itemName",
             code: "$itemCode",
+            cookingTime: "$cookingTime",
+            rate: "$rate",
           },
         },
       },
