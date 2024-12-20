@@ -11,5 +11,12 @@ routes.get(
   "/kitchen-order-list/:id",
   OrderControllers.getKitchenOrderListForSingleBill
 );
+routes.get(
+  "/active-table-list-details",
+  OrderControllers.getActiveTableListDetails
+);
+
+routes.patch("/:id", OrderControllers.updateOrder);
+routes.patch("/status/:id", OrderControllers.orderStatusUpdater);
 
 export const OrderRoutes = routes;

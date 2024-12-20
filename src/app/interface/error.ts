@@ -8,3 +8,5 @@ export type TGenericErrorResponse = {
   message: string;
   errorSources: TErrorSources;
 };
+
+export type IGenericErrorMessage = typeof Error;

@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { PipelineStage } from "mongoose";
 import { Order } from "../order/order.model";
-import { ItemCategroy } from "../itemCategory/itemCategory.model";
+
+import MenuItemConsumption from "../rawMaterialConsumption/rawMaterialConsumption.model";
 
 const getDailyStatementFromDB = async (payload: Record<string, any>) => {
   // Default to current date if no startDate and endDate are provided
@@ -216,7 +217,7 @@ const getDailySalesStatementSummeryFromDB = async (
   return result;
 };
 
-// ? item wise sales satement
+// ! item wise sales satement
 
 const getItemWiseSalesSatetementFromDB = async (query: Record<string, any>) => {
   const startDate = new Date(query.startDate);
@@ -234,47 +235,90 @@ const getItemWiseSalesSatetementFromDB = async (query: Record<string, any>) => {
       },
     },
     {
-      $unwind: "$items", // Unwind the items array
+      $unwind: {
+        path: "$items",
+        preserveNullAndEmptyArrays: true,
+      },
     },
     {
       $lookup: {
-        from: "itemcategories", // Replace with your actual ItemCategory collection name
+        from: "menuitemconsumptions",
         localField: "items.item",
         foreignField: "_id",
         as: "itemDetails",
       },
     },
     {
-      $unwind: "$itemDetails", // Unwind the itemDetails array
+      $unwind: { path: "$itemDetails", preserveNullAndEmptyArrays: true },
     },
     {
       $lookup: {
-        from: "menugroups", // Replace with your actual MenuGroup collection name
-        localField: "itemDetails.menuGroup",
+        from: "itemcategroys",
+        localField: "itemDetails.itemCategory",
+        foreignField: "_id",
+        as: "itemGroupDetails",
+      },
+    },
+    {
+      $unwind: { path: "$itemGroupDetails", preserveNullAndEmptyArrays: true },
+    },
+
+    {
+      $lookup: {
+        from: "menugroups",
+        localField: "itemGroupDetails.menuGroup",
         foreignField: "_id",
         as: "menuGroupDetails",
       },
     },
     {
-      $unwind: "$menuGroupDetails", // Unwind the menuGroupDetails array
+      $unwind: { path: "$menuGroupDetails", preserveNullAndEmptyArrays: true },
     },
     {
       $group: {
-        _id: "$menuGroupDetails.name", // Group by menuGroup name
+        _id: {
+          menuGroup: "$menuGroupDetails.name",
+          itemGroup: "$itemGroupDetails.name",
+        },
         items: {
           $push: {
-            code: "$itemDetails.code", // Assuming `code` field exists in ItemCategory
-            name: "$itemDetails.name", // Assuming `name` field exists in ItemCategory
-            rate: "$itemDetails.rate", // Assuming `rate` field exists in ItemCategory
-            quantity: { $sum: "$items.quantity" }, // Sum up the quantities
+            code: "$itemDetails.itemCode",
+            name: "$itemDetails.itemName",
+            rate: "$itemDetails.rate",
+
+            quantity: { $sum: "$items.qty" },
+            totalBill: "$totalBill",
+          },
+        },
+
+        grandTotalQty: { $sum: "$items.qty" },
+        granTotalBill: { $sum: "$totalBill" },
+        grandTotalRate: { $sum: "$itemDetails.rate" },
+      },
+    },
+
+    //
+
+    {
+      $group: {
+        _id: "$_id.menuGroup",
+        itemGroups: {
+          $push: {
+            itemGroup: "$_id.itemGroup",
+            items: "$items",
+            granTotalBill: { $sum: "$granTotalBill" },
+            grandTotalQty: { $sum: "$grandTotalQty" },
+            grandTotalRate: { $sum: "$grandTotalRate" },
           },
         },
       },
     },
+
     {
       $project: {
         menuGroup: "$_id",
-        items: 1,
+        itemGroups: 1,
+
         _id: 0,
       },
     },
@@ -284,41 +328,75 @@ const getItemWiseSalesSatetementFromDB = async (query: Record<string, any>) => {
   return result;
 };
 
+// ? ******************************************
+
 const getMenuGroupWithItemsFromDB = async () => {
   const query = [
     {
       $lookup: {
-        from: "menugroups", // Replace with your actual MenuGroup collection name
-        localField: "menuGroup",
+        from: "itemcategroys", // Replace with your actual MenuGroup collection name
+        localField: "itemCategory",
+        foreignField: "_id",
+        as: "itemCategorysDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$itemCategorysDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "menugroups",
+        localField: "itemCategorysDetails.menuGroup",
         foreignField: "_id",
         as: "menuGroupDetails",
       },
     },
     {
-      $unwind: "$menuGroupDetails", // Ensure a single menuGroup per item
+      $unwind: { path: "$menuGroupDetails", preserveNullAndEmptyArrays: true },
     },
+
     {
       $group: {
-        _id: "$menuGroupDetails.name", // Group by menuGroup name
+        _id: {
+          menuGroup: "$menuGroupDetails.name",
+          itemGroup: "$itemCategorysDetails.name",
+        },
         items: {
           $push: {
-            itemName: "$name",
-            code: "$uid", // Assuming `uid` is the code for items
+            itemName: "$itemName",
+            code: "$itemCode",
           },
         },
       },
     },
+
+    {
+      $group: {
+        _id: "$_id.menuGroup",
+        itemGroups: {
+          $push: {
+            itemGroup: "$_id.itemGroup",
+            items: "$items",
+          },
+        },
+      },
+    },
+
     {
       $project: {
         menuGroup: "$_id",
-        items: 1,
+        itemGroups: 1,
+
         _id: 0,
       },
     },
   ];
 
   try {
-    const result = await ItemCategroy.aggregate(query); // Replace `ItemCategory` with your model name
+    const result = await MenuItemConsumption.aggregate(query); // Replace `ItemCategory` with your model name
     return result;
   } catch (error) {
     console.error("Error fetching menu group with items:", error);
