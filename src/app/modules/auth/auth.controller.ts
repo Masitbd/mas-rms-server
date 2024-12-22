@@ -8,7 +8,6 @@ import config from "../../config";
 
 const loginUser = catchAsync(async (req: Request, res: Response) => {
   const { ...loginData } = req.body;
-
   const result = await AuthService.loginUser(loginData);
   const { refreshToken } = result;
   // set refresh token into cookie

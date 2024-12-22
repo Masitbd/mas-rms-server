@@ -67,6 +67,21 @@ const deleteCustomer = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getCustomerByDiscountCode = catchAsync(
+  async (req: Request, res: Response) => {
+    const { discountCard } = req.params;
+
+    const result =
+      await CustomerSevices.getCustomerByDiscountCode(discountCard);
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Retrieved Successfully",
+      data: result,
+    });
+  }
+);
+
 //  exports
 
 export const CustomerControllers = {
@@ -75,4 +90,5 @@ export const CustomerControllers = {
   getSingleCustomer,
   updateCustomer,
   deleteCustomer,
+  getCustomerByDiscountCode,
 };
