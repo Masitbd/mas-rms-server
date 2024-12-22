@@ -5,6 +5,7 @@ import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
 import { IUser } from "./user.interface";
 import { UserService } from "./user.service";
+import pick from "../../../shared/pick";
 
 const createUser: RequestHandler = catchAsync(
   async (req: Request, res: Response) => {
@@ -22,7 +23,9 @@ const createUser: RequestHandler = catchAsync(
 
 const getSingleUser: RequestHandler = catchAsync(
   async (req: Request, res: Response) => {
-    const result = await UserService.getSIngleUser(req.user as IUser);
+    const uuid = req?.params.uuid;
+    console.log(uuid);
+    const result = await UserService.getSIngleUser(uuid);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -34,7 +37,19 @@ const getSingleUser: RequestHandler = catchAsync(
 );
 const getAllUser: RequestHandler = catchAsync(
   async (req: Request, res: Response) => {
-    const result = await UserService.getALluser();
+    const searchTerm = req?.query?.searchTerm;
+    const filterOption = pick(req.query, ["status", "brunch"]);
+    const paginationOption = pick(req.query, [
+      "page",
+      "limit",
+      "sortBy",
+      "sortOrder",
+    ]);
+    const result = await UserService.getALluser(
+      searchTerm as string,
+      filterOption as Record<string, string>,
+      paginationOption as Record<string, string>
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -45,14 +60,17 @@ const getAllUser: RequestHandler = catchAsync(
   }
 );
 
-const updateUser: RequestHandler = catchAsync(
+const updateUserProfile: RequestHandler = catchAsync(
   async (req: Request, res: Response) => {
-    const result = await UserService.patchUser(req.params.uuid, req.body);
+    const result = await UserService.patchUserProfile(
+      req.params.uuid,
+      req.body
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: "User created successfully!",
+      message: "User updated successfully!",
       data: result,
     });
   }
@@ -60,20 +78,33 @@ const updateUser: RequestHandler = catchAsync(
 
 const getUserByUUid: RequestHandler = catchAsync(
   async (req: Request, res: Response) => {
-    const result = await UserService.getSIngleUser({ uuid: req.params.uuid });
+    const result = await UserService.getSIngleUser(req.params?.uuid);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: "User created successfully!",
+      message: "User retrieved successfully!",
       data: result,
     });
   }
 );
+
+const deleteUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await UserService.deleteUser(req.params?.uuid);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User Deleted successfully!",
+    data: result,
+  });
+});
+
 export const UserController = {
   getUserByUUid,
   createUser,
   getSingleUser,
   getAllUser,
-  updateUser,
+  updateUserProfile,
+  deleteUser,
 };
