@@ -16,4 +16,6 @@ export interface IMenuItemConsumption {
   itemCode: string;
   description: string;
   consumptions: IItemConsumption[];
+  discount?: number;
+  waiterTip?: number;
 }

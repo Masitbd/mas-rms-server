@@ -8,6 +8,9 @@ import { IUser } from "./user.interface";
 import { User } from "./user.model";
 import { generateUUid } from "./user.utils";
 import AppError from "../../errors/AppError";
+import { USER_ROLE } from "../../enums/userRole.enum";
+import { userFinderAggregationBuilder } from "./user.helper";
+import { IOptions, paginationHelpers } from "../../helpers/paginationHelper";
 
 const createUser = async (
   profile: IProfile,
@@ -70,11 +73,11 @@ const createUser = async (
   return newUserAllData;
 };
 
-const getSIngleUser = async (data: Partial<IUser>) => {
+const getSIngleUser = async (uuid: string) => {
   const result = await User.aggregate([
     {
       $match: {
-        uuid: data.uuid,
+        uuid: uuid,
       },
     },
     {
@@ -92,12 +95,6 @@ const getSIngleUser = async (data: Partial<IUser>) => {
       },
     },
     {
-      $unwind: {
-        path: "$permissions",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
       $project: {
         password: 0,
       },
@@ -107,57 +104,75 @@ const getSIngleUser = async (data: Partial<IUser>) => {
   return result[0];
 };
 
-const getALluser = async () => {
-  const result = await Profile.aggregate([
-    {
-      $lookup: {
-        from: "userpermissions",
-        localField: "uuid",
-        foreignField: "uuid",
-        as: "permissions",
-      },
-    },
-    {
-      $unwind: {
-        path: "$permissions",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $lookup: {
-        from: "users",
-        localField: "uuid",
-        foreignField: "uuid",
-        as: "user",
-      },
-    },
-    {
-      $unwind: {
-        path: "$user",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $project: {
-        "user.password": 0,
-        "user.permissions": 0,
-      },
-    },
-  ]);
+const getALluser = async (
+  searchTerm: string,
+  filterOptions: Record<string, string>,
+  paginationOptions: Record<string, string>
+) => {
+  const searchablefields = ["name", "email", "phone", "uuid"];
+  const { limit, page, skip, sortBy, sortOrder } =
+    paginationHelpers.calculatePagination(paginationOptions as IOptions);
 
-  return result;
+  const result = await Profile.aggregate(
+    userFinderAggregationBuilder(searchablefields, searchTerm, filterOptions)
+  )
+    .sort({ [sortBy]: sortOrder })
+    .skip(skip)
+    .limit(limit);
+
+  const totalDocument = await User.estimatedDocumentCount();
+  return {
+    data: result,
+    meta: {
+      page: page,
+      limit: limit,
+      total: totalDocument,
+    },
+  };
 };
 
-const patchUser = async (uuid: string, data: Partial<IUser>) => {
-  const result = await User.findOneAndUpdate({ uuid: uuid }, data, {
+const patchUserProfile = async (uuid: string, data: Partial<IProfile>) => {
+  const result = await Profile.findOneAndUpdate({ uuid: uuid }, data, {
     new: true,
   });
   return result;
 };
 
+const deleteUser = async (uuid: string) => {
+  if (!uuid) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "User ID is required"); // validate user id before deleting it.  If not provided, return an error message.  This is a basic validation and should be replaced with proper validation logic for production.  For example, you can use Joi or a similar library for validation.  In a real-world application, you should also check if the user has sufficient permissions to delete the user.  Also, you should consider implementing a soft-delete mechanism instead of hard-deleting users, as it provides a better audit trail.  In this example, we're hard-deleting the user.  If you want to implement soft-delete, you should update the user status to 'deleted' instead of deleting it.  You would also need to update the related documents (if any) to reference the deleted user.  Finally, you should consider implementing a background job system to handle the deletion of deleted users.
+  }
+  const session = await mongoose.startSession();
+  try {
+    await session.startTransaction();
+    const user = await User.findOne({ uuid: uuid }).session(session);
+    const profile = await Profile.findOne({ uuid: uuid }).session(session);
+    if (user?.role == USER_ROLE.SUPER_ADMIN) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "You are not allowed to delete super admin user"
+      );
+    }
+    if (!user || !profile) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "User not found");
+    }
+    await Promise.all([
+      user.deleteOne({ session }),
+      profile.deleteOne({ session }),
+    ]);
+
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, error as string);
+  } finally {
+    await session.endSession();
+  }
+};
 export const UserService = {
   createUser,
   getSIngleUser,
   getALluser,
-  patchUser,
+  patchUserProfile,
+  deleteUser,
 };

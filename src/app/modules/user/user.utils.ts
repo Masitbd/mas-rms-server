@@ -8,7 +8,9 @@ export const findLastUserUUIid = async (): Promise<string | undefined> => {
     })
     .lean();
 
-  return lastUser?.uuid ? lastUser.uuid.substring(6) : undefined;
+  console.log(lastUser);
+
+  return lastUser?.uuid ? lastUser.uuid.substring(2) : undefined;
 };
 
 export const generateUUid = async (): Promise<string> => {
@@ -16,7 +18,6 @@ export const generateUUid = async (): Promise<string> => {
     (await findLastUserUUIid()) || (0).toString().padStart(5, "0"); //00000
   //increment by 1
   let incrementedId = (parseInt(currentId) + 1).toString().padStart(5, "0");
-  //20 25
   incrementedId = `${"U-"}${incrementedId}`;
 
   return incrementedId;

@@ -1,4 +1,6 @@
+import { StatusCodes } from "http-status-codes";
 import { generateCustomerId } from "../../../utils/generateUniqueId";
+import AppError from "../../errors/AppError";
 import { TCustomer } from "./customer.interface";
 import { Customer } from "./customer.model";
 
@@ -39,10 +41,18 @@ const deleteCustomerFromDB = async (id: string) => {
   return result;
 };
 
+const getCustomerByDiscountCode = async (discountCode: string) => {
+  const result = await Customer.findOne({ discountCard: discountCode });
+  if (!result) {
+    throw new AppError(StatusCodes.NOT_FOUND, "Customer not found");
+  }
+  return result;
+};
 export const CustomerSevices = {
   createCustomerIntoDB,
   getAllCustomerIntoDB,
   getSingleCustomerIntoDB,
   updateCustomerIntoDB,
   deleteCustomerFromDB,
+  getCustomerByDiscountCode,
 };

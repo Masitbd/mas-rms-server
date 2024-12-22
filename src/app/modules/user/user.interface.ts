@@ -33,3 +33,5 @@ export type UserModel = {
     savedPassword: string
   ): Promise<boolean>;
 } & Model<IUser>;
+
+export const userFilterableFields = ["status", "brunch"];
