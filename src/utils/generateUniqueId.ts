@@ -1,7 +1,9 @@
+import { Branch } from "../app/modules/branch/branch.model";
 import { Customer } from "../app/modules/customer/customer.model";
 import { ItemCategroy } from "../app/modules/itemCategory/itemCategory.model";
 import { MenuGroup } from "../app/modules/menuGroup/menuGroup.model";
 import { Order } from "../app/modules/order/order.model";
+
 import { Waiter } from "../app/modules/waiter/waiter.model";
 
 //? generate menu  uiid
@@ -155,6 +157,37 @@ export const generateOrderId = async () => {
   let incrementId = (Number(currentId) + 1).toString().padStart(3, "0");
 
   incrementId = `R${year}${month}${incrementId}`;
+
+  return incrementId;
+};
+
+// ! generate branch id
+
+const findLastBranchId = async () => {
+  const lastItem = await Branch.findOne(
+    {},
+    {
+      bid: 1,
+      _id: 0,
+    }
+  )
+    .sort({
+      createdAt: -1,
+    })
+    .lean();
+
+  return lastItem?.bid ? lastItem.bid : undefined;
+};
+
+export const generateBranchId = async () => {
+  let currentId = "0";
+  const lastBranchId = await findLastBranchId();
+
+  if (lastBranchId) {
+    currentId = lastBranchId;
+  }
+
+  const incrementId = (Number(currentId) + 1).toString().padStart(2, "0");
 
   return incrementId;
 };

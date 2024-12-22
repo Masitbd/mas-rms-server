@@ -42,15 +42,15 @@ const MenuItemConsumptionSchema = new Schema<IMenuItemConsumption>(
     },
     isDiscount: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     isVat: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     isWaiterTips: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     itemName: {
       type: String,
