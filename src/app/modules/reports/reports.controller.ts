@@ -55,9 +55,40 @@ const getMenuGroupItems = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getMenuItemsConsumption = catchAsync(async (req: Request, res: Response) => {
+  const result = await reportServices.getMenuItemsAndConsumptionFromDB();
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Menu Item consumtion retrived successfully",
+    data: result,
+  });
+});
+const getMenuItemsCosting = catchAsync(async (req: Request, res: Response) => {
+  const result = await reportServices.getMenuItemsAndCostingFromDB();
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Menu Item consting retrived successfully",
+    data: result,
+  });
+});
+const getrawMaterialOnDaiylySales = catchAsync(async (req: Request, res: Response) => {
+  const result = await reportServices.getRawMaterialConsumptionSalesFromDB(req.query);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Raw material on sales retrived successfully",
+    data: result,
+  });
+});
+
 export const reportControllers = {
   getDailyStatement,
   getDailySatesStatementSummery,
   getItemWiseSalesSatement,
   getMenuGroupItems,
+  getMenuItemsConsumption,
+  getMenuItemsCosting,
+  getrawMaterialOnDaiylySales
 };
