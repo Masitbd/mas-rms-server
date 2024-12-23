@@ -194,7 +194,7 @@ const updateOrder = async (id: string, order: TOrder) => {
 
   // 3. Updating to db and cache server
 
-  const result = await updateOrderInDB(id, postableData as TOrder);
+  const result = await updateOrderInDB(id, postableData as unknown as TOrder);
   const updateCacheData = updateCache(
     id,
     result?.toObject() as TOrder,
