@@ -15,7 +15,6 @@ const post = async (params: IRawMaterials, loggedInUserInfo: JwtPayload) => {
     params.branch = loggedInUserInfo?.branch;
   }
 
-  console.log(params);
   const newId = await generateUniqueId<IRawMaterials>(
     RawMaterial,
     "M",
@@ -65,12 +64,10 @@ const getAll = async (loggedInUserInfo: JwtPayload) => {
 };
 
 const getById = async (id: string) => {
-  console.log(id);
   const result = await RawMaterial.findOne({ id: id });
   if (!result) {
     throw new AppError(StatusCodes.NOT_FOUND, "Item not found");
   }
-  console.log(result);
   return result;
 };
 export const RawMaterialService = { post, patch, remove, getAll, getById };

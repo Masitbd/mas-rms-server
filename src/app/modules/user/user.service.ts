@@ -19,9 +19,8 @@ const createUser = async (
   user: IUser,
   loggedInUserInfo: JwtPayload
 ): Promise<IUser | null> => {
-  // check for role
   if (
-    loggedInUserInfo?.role !== ENUM_USER.ADMIN ||
+    loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
     loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
   ) {
     if (user.role == ENUM_USER.ADMIN || user.role == ENUM_USER.SUPER_ADMIN) {
@@ -142,7 +141,6 @@ const getALluser = async (
     ) as unknown as string;
   }
 
-  console.log(filterOptions);
   const searchablefields = ["name", "email", "phone", "uuid"];
   const { limit, page, skip, sortBy, sortOrder } =
     paginationHelpers.calculatePagination(paginationOptions as IOptions);

@@ -10,7 +10,9 @@ router.post(
     ENUM_USER.SUPER_ADMIN,
     ENUM_USER.ADMIN,
     ENUM_USER.MANAGER,
-    ENUM_USER.USER
+    ENUM_USER.USER,
+    ENUM_USER.CASHIER,
+    ENUM_USER.ACCOUNTANT
   ),
   UserController.createUser
 );

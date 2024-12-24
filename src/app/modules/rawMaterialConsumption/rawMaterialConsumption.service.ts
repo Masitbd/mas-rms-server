@@ -4,6 +4,9 @@ import MenuItemConsumption from "./rawMaterialConsumption.model";
 import { IMenuItemConsumption } from "./rawMaterialConsumption.interface";
 import AppError from "../../errors/AppError";
 import { StatusCodes } from "http-status-codes";
+import { JwtPayload } from "jsonwebtoken";
+import { ENUM_USER } from "../../enums/EnumUser";
+import { generateUniqueId } from "../../../utils/generateUniqueId";
 
 interface FetchAllParams {
   page?: number;
@@ -20,9 +23,23 @@ class MenuItemConsumptionService {
    * @returns Promise<IMenuItemConsumption>
    */
   async create(
-    menuItemData: IMenuItemConsumption
+    menuItemData: IMenuItemConsumption,
+    loggedInUserInfo: JwtPayload
   ): Promise<IMenuItemConsumption> {
     try {
+      if (
+        loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
+        loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
+      ) {
+        menuItemData.branch = loggedInUserInfo?.branch;
+      }
+      const newId = await generateUniqueId<IMenuItemConsumption>(
+        MenuItemConsumption,
+        "I",
+        4,
+        "id"
+      );
+      menuItemData.id = newId;
       const savedMenuItem = await MenuItemConsumption.create(menuItemData);
       return savedMenuItem;
     } catch (error: any) {
@@ -63,7 +80,7 @@ class MenuItemConsumptionService {
    * @param params - Fetch parameters including page, limit, search, itemCategory, and itemGroup
    * @returns Promise<{ items: IMenuItemConsumption[], total: number, page: number, totalPages: number }>
    */
-  async fetchAll(params: FetchAllParams = {}) {
+  async fetchAll(params: FetchAllParams = {}, loggedInUserInfo: JwtPayload) {
     try {
       const {
         page = 1,
@@ -85,6 +102,13 @@ class MenuItemConsumptionService {
           { itemCode: { $regex: search, $options: "i" } },
           { description: { $regex: search, $options: "i" } },
         ];
+      }
+      // checking for branch
+      if (
+        loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
+        loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
+      ) {
+        query.$and = [{ branch: new Types.ObjectId(loggedInUserInfo?.branch) }];
       }
 
       // Add category filter

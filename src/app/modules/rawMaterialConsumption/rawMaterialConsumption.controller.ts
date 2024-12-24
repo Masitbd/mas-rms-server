@@ -6,7 +6,7 @@ import rawMaterialConsumptionService from "./rawMaterialConsumption.service";
 import pick from "../../../shared/pick";
 
 const create = catchAsync(async (req: Request, res: Response) => {
-  const result = await rawMaterialConsumptionService.create(req.body);
+  const result = await rawMaterialConsumptionService.create(req.body, req.user);
   sendResponse(res, {
     success: true,
     statusCode: 200,
@@ -51,11 +51,14 @@ const getSingle = catchAsync(async (req: Request, res: Response) => {
 const getAll = catchAsync(async (req: Request, res: Response) => {
   const paginationOpeion = pick(req.query, ["page", "limit", "skip"]);
   const searchOption = pick(req.query, ["searchTerm"]);
-  const result = await rawMaterialConsumptionService.fetchAll({
-    limit: Number(paginationOpeion?.limit ?? 10),
-    page: Number(paginationOpeion?.page ?? 1),
-    search: (searchOption?.searchTerm as string) ?? "",
-  });
+  const result = await rawMaterialConsumptionService.fetchAll(
+    {
+      limit: Number(paginationOpeion?.limit ?? 10),
+      page: Number(paginationOpeion?.page ?? 1),
+      search: (searchOption?.searchTerm as string) ?? "",
+    },
+    req.user
+  );
   sendResponse(res, {
     success: true,
     statusCode: 200,
