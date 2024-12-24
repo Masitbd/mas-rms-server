@@ -38,6 +38,7 @@ export class orderDataValidator {
   discountCard?: string;
   customer: TCustomer | IUnregisteredCustomerInfo | Types.ObjectId;
   guestType: string;
+  branch: Types.ObjectId;
   constructor(parameters: TOrder) {
     this.billNo = parameters?.billNo ?? "";
     this.date = new Date();
@@ -70,6 +71,7 @@ export class orderDataValidator {
     this.discountCard = parameters?.discountCard ?? "";
     this.customer = parameters?.customer;
     this.guestType = parameters?.guestType;
+    this.branch = parameters?.branch;
   }
 
   async customerData() {

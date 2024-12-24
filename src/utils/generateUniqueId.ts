@@ -1,3 +1,4 @@
+import { Model } from "mongoose";
 import { Branch } from "../app/modules/branch/branch.model";
 import { Customer } from "../app/modules/customer/customer.model";
 import { ItemCategroy } from "../app/modules/itemCategory/itemCategory.model";
@@ -190,4 +191,31 @@ export const generateBranchId = async () => {
   const incrementId = (Number(currentId) + 1).toString().padStart(2, "0");
 
   return incrementId;
+};
+
+export const generateUniqueId = async <T>(
+  dataModel: Model<T>,
+  startString: string,
+  idLengthWithoutStartString: number,
+  fieldName: keyof T
+) => {
+  let currentId = "0";
+  const lastId = await dataModel
+    .findOne()
+    .sort({
+      createdAt: -1,
+    })
+    .lean();
+
+  if (lastId) {
+    currentId = lastId[fieldName] as string;
+  }
+
+  const incrementedId =
+    Number(currentId.substring(startString.length) ?? 0) + 1;
+  const newId = incrementedId
+    .toString()
+    .padStart(idLengthWithoutStartString, "0");
+
+  return `${startString + newId}`;
 };

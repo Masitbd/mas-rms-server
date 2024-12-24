@@ -48,6 +48,7 @@ export type TOrder = {
   customer: TCustomer | IUnregisteredCustomerInfo | Types.ObjectId;
   guestType: string;
   status?: ORDER_STATUS;
+  branch: Types.ObjectId;
 };
 
 export type TOrderForCacheServer = TOrder & {

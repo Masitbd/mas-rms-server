@@ -9,8 +9,13 @@ import pick from "../../../shared/pick";
 
 const createUser: RequestHandler = catchAsync(
   async (req: Request, res: Response) => {
+    const loggedInUserInfo = req.user;
     const { profile, ...userData } = req.body;
-    const result = await UserService.createUser(profile, userData);
+    const result = await UserService.createUser(
+      profile,
+      userData,
+      loggedInUserInfo
+    );
 
     sendResponse<IUser>(res, {
       statusCode: httpStatus.OK,
@@ -39,6 +44,7 @@ const getAllUser: RequestHandler = catchAsync(
   async (req: Request, res: Response) => {
     const searchTerm = req?.query?.searchTerm;
     const filterOption = pick(req.query, ["status", "brunch"]);
+    const loggedInUser = req.user;
     const paginationOption = pick(req.query, [
       "page",
       "limit",
@@ -48,7 +54,8 @@ const getAllUser: RequestHandler = catchAsync(
     const result = await UserService.getALluser(
       searchTerm as string,
       filterOption as Record<string, string>,
-      paginationOption as Record<string, string>
+      paginationOption as Record<string, string>,
+      loggedInUser
     );
 
     sendResponse(res, {
