@@ -128,6 +128,7 @@ class MenuItemConsumptionService {
       // Execute main query
       const items = await MenuItemConsumption.find(query)
         .populate("consumptions.item", "materialName")
+        .populate("images")
         .sort({ itemName: 1 }) // Sort by itemName
         .skip(skip)
         .limit(limit)
@@ -158,6 +159,7 @@ class MenuItemConsumptionService {
     try {
       const menuItem = await MenuItemConsumption.findById(id)
         .populate("consumptions.item")
+        .populate("images")
         .lean();
       return menuItem;
     } catch (error: any) {

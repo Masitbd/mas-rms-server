@@ -19,4 +19,5 @@ export interface IMenuItemConsumption {
   discount?: number;
   waiterTip?: number;
   branch: Types.ObjectId;
+  images: Types.ObjectId;
 }

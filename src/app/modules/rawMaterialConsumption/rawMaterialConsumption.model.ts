@@ -74,6 +74,7 @@ const MenuItemConsumptionSchema = new Schema<IMenuItemConsumption>(
       type: Number,
     },
     branch: { type: Schema.Types.ObjectId, ref: "Branch", required: true }, // Reference to the Branch model
+    images: { type: Schema.Types.ObjectId, ref: "Images" }, // Reference to the Images model
   },
   {
     timestamps: true,
