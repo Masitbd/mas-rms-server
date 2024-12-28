@@ -6,6 +6,7 @@ const menuGroupSchema = new Schema<TMenuGroup>(
     uid: { type: String, required: true, unique: true },
     name: { type: String, required: true },
     description: { type: String },
+    branch: { type: Schema.Types.ObjectId, ref: "Branch" },
   },
   {
     timestamps: true,

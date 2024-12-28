@@ -1,3 +1,5 @@
+import { Types } from "mongoose";
+
 export type TCustomer = {
   cid: string;
   name: string;
@@ -9,4 +11,5 @@ export type TCustomer = {
   dob: string;
   reward: number;
   isActive: boolean;
+  branch: Types.ObjectId;
 };

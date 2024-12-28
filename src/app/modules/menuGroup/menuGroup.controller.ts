@@ -5,7 +5,11 @@ import sendResponse from "../../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 
 const createMenuoGroup = catchAsync(async (req: Request, res: Response) => {
-  const result = await MenuGroupServices.createMenuGroupIntoDB(req.body);
+  const loggedInUserInfo = req.user;
+  const result = await MenuGroupServices.createMenuGroupIntoDB(
+    req.body,
+    loggedInUserInfo
+  );
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
@@ -17,7 +21,9 @@ const createMenuoGroup = catchAsync(async (req: Request, res: Response) => {
 //  get all
 
 const getAllMenuoGroup = catchAsync(async (req: Request, res: Response) => {
-  const result = await MenuGroupServices.getAllMenuGroupIdFromDB();
+  const loggedInUserInfo = req.user;
+  const result =
+    await MenuGroupServices.getAllMenuGroupIdFromDB(loggedInUserInfo);
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,

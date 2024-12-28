@@ -13,6 +13,7 @@ const customerSchema = new Schema<TCustomer>(
     discountCard: { type: String, unique: true },
     discount: { type: Number },
     isActive: { type: Boolean, default: true },
+    branch: { type: Schema.Types.ObjectId, ref: "Branch" },
   },
   {
     timestamps: true,

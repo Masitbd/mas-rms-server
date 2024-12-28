@@ -1,8 +1,17 @@
+import { JwtPayload } from "jsonwebtoken";
 import { TTable } from "./table.interface";
 import { Table } from "./table.model";
+import { Types } from "mongoose";
+import { ENUM_USER } from "../../enums/EnumUser";
 
 // ? create
-const createTableIntoDB = async (payload: TTable) => {
+const createTableIntoDB = async (
+  payload: TTable,
+  loggedInUserInfo: JwtPayload
+) => {
+  if (loggedInUserInfo?.branch) {
+    payload.branch = loggedInUserInfo.branch; //? add branch id to table object
+  }
   //?  payload.tid = await generateTableId();   // deprecated by murad vai it will manual input
   // now save in db with tid
   const result = await Table.create(payload);
@@ -11,8 +20,15 @@ const createTableIntoDB = async (payload: TTable) => {
 
 //  getAll
 
-const getAllTableListFromDB = async () => {
-  const result = await Table.find();
+const getAllTableListFromDB = async (loggedInUserInfo: JwtPayload) => {
+  const filterOption: Record<string, Types.ObjectId> = {};
+  if (
+    loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
+    loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
+  ) {
+    filterOption.branch = loggedInUserInfo?.branch;
+  }
+  const result = await Table.find(filterOption);
   return result;
 };
 

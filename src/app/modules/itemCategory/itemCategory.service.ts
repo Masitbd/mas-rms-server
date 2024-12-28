@@ -1,9 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { JwtPayload } from "jsonwebtoken";
 import { generateItemCategoryId } from "../../../utils/generateUniqueId";
 import { TItemCategory } from "./itemCategory.interface";
 import { ItemCategroy } from "./itemCategory.model";
+import { Types } from "mongoose";
+import { ENUM_USER } from "../../enums/EnumUser";
 
-const createItemCategoryIntoDB = async (payload: TItemCategory) => {
+const createItemCategoryIntoDB = async (
+  payload: TItemCategory,
+  loggedInUserInfo: JwtPayload
+) => {
+  if (loggedInUserInfo?.branch) {
+    payload.branch = loggedInUserInfo.branch; //? add branch id to table object
+  }
   payload.uid = await generateItemCategoryId();
 
   //? now save payload into db with ItemCategory id
@@ -14,12 +23,22 @@ const createItemCategoryIntoDB = async (payload: TItemCategory) => {
 
 //  get all
 
-const getAllItemCategoryIdFromDB = async (payload: any) => {
+const getAllItemCategoryIdFromDB = async (
+  payload: any,
+  loggedInUserInfo: JwtPayload
+) => {
+  const filterOption: Record<string, Types.ObjectId> = {};
+  if (
+    loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
+    loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
+  ) {
+    filterOption.branch = loggedInUserInfo?.branch;
+  }
   const isCondition = payload?.menuGroup
     ? { menuGroup: payload?.menuGroup }
     : {};
-
-  const result = await ItemCategroy.find(isCondition)
+  console.log(filterOption);
+  const result = await ItemCategroy.find({ $and: [filterOption, isCondition] })
     .populate("menuGroup", "name")
     .sort({ createdAt: -1 });
   return result;

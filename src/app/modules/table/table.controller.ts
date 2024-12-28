@@ -5,7 +5,11 @@ import { TableServices } from "./table.services";
 import { Request, Response } from "express";
 
 const createTable = catchAsync(async (req: Request, res: Response) => {
-  const result = await TableServices.createTableIntoDB(req.body);
+  const loggedInUserInfo = req.user;
+  const result = await TableServices.createTableIntoDB(
+    req.body,
+    loggedInUserInfo
+  );
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
@@ -17,7 +21,9 @@ const createTable = catchAsync(async (req: Request, res: Response) => {
 //  get all
 
 const getAllTableList = catchAsync(async (req: Request, res: Response) => {
-  const result = await TableServices.getAllTableListFromDB();
+  const loggedInUserInfo = req.user;
+
+  const result = await TableServices.getAllTableListFromDB(loggedInUserInfo);
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,

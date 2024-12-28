@@ -5,7 +5,11 @@ import { WaiterServices } from "./waiter.service";
 import { Request, Response } from "express";
 
 const createWaiter = catchAsync(async (req: Request, res: Response) => {
-  const result = await WaiterServices.createWaiterIntoDB(req.body);
+  const loggedInUserInfo = req.user;
+  const result = await WaiterServices.createWaiterIntoDB(
+    req.body,
+    loggedInUserInfo
+  );
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
@@ -17,7 +21,8 @@ const createWaiter = catchAsync(async (req: Request, res: Response) => {
 //  get all
 
 const getAllWaiter = catchAsync(async (req: Request, res: Response) => {
-  const result = await WaiterServices.getAllWaiterIdFromDB();
+  const loggedInUserInfo = req.user;
+  const result = await WaiterServices.getAllWaiterIdFromDB(loggedInUserInfo);
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,

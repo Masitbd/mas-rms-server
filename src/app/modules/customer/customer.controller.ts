@@ -5,7 +5,11 @@ import sendResponse from "../../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 
 const createCustomer = catchAsync(async (req: Request, res: Response) => {
-  const result = await CustomerSevices.createCustomerIntoDB(req.body);
+  const loggedInUserInfo = req.user; //? add branch id to table object
+  const result = await CustomerSevices.createCustomerIntoDB(
+    req.body,
+    loggedInUserInfo
+  );
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
@@ -17,7 +21,8 @@ const createCustomer = catchAsync(async (req: Request, res: Response) => {
 //  get all
 
 const getAllCustomer = catchAsync(async (req: Request, res: Response) => {
-  const result = await CustomerSevices.getAllCustomerIntoDB();
+  const loggedInUserInfo = req.user;
+  const result = await CustomerSevices.getAllCustomerIntoDB(loggedInUserInfo);
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,

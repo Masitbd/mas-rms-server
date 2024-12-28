@@ -165,13 +165,7 @@ export const generateOrderId = async () => {
 // ! generate branch id
 
 const findLastBranchId = async () => {
-  const lastItem = await Branch.findOne(
-    {},
-    {
-      bid: 1,
-      _id: 0,
-    }
-  )
+  const lastItem = await Branch.findOne()
     .sort({
       createdAt: -1,
     })

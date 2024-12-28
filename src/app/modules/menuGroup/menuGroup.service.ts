@@ -1,8 +1,17 @@
+import { JwtPayload } from "jsonwebtoken";
 import { generateMenuGroupId } from "../../../utils/generateUniqueId";
 import { TMenuGroup } from "./menuGroup.interface";
 import { MenuGroup } from "./menuGroup.model";
+import { Types } from "mongoose";
+import { ENUM_USER } from "../../enums/EnumUser";
 
-const createMenuGroupIntoDB = async (payload: TMenuGroup) => {
+const createMenuGroupIntoDB = async (
+  payload: TMenuGroup,
+  loggedInUserInfo: JwtPayload
+) => {
+  if (loggedInUserInfo?.branch) {
+    payload.branch = loggedInUserInfo.branch; //? add branch id to menugroup object
+  }
   payload.uid = await generateMenuGroupId();
 
   //? now save payload into db with menugroup id
@@ -13,8 +22,15 @@ const createMenuGroupIntoDB = async (payload: TMenuGroup) => {
 
 //  get all
 
-const getAllMenuGroupIdFromDB = async () => {
-  const result = await MenuGroup.find().sort({ createdAt: -1 });
+const getAllMenuGroupIdFromDB = async (loggedInUserInfo: JwtPayload) => {
+  const filterOption: Record<string, Types.ObjectId> = {};
+  if (
+    loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
+    loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
+  ) {
+    filterOption.branch = loggedInUserInfo?.branch;
+  }
+  const result = await MenuGroup.find(filterOption).sort({ createdAt: -1 });
   return result;
 };
 
