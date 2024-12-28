@@ -4,7 +4,11 @@ import { OrderServices } from "./order.services";
 import sendResponse from "../../../shared/sendResponse";
 
 const createOrder = catchAsync(async (req: Request, res: Response) => {
-  const result = await OrderServices.createOrderIntoDB(req.body);
+  const loggedInuserInfo = req.user;
+  const result = await OrderServices.createOrderIntoDB(
+    req.body,
+    loggedInuserInfo
+  );
   sendResponse(res, {
     statusCode: 200,
     message: "Order Created Succesfully",
@@ -14,7 +18,11 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllOrder = catchAsync(async (req: Request, res: Response) => {
-  const result = await OrderServices.getAllOderFromDB(req.query);
+  const loggedInUserInfo = req.user;
+  const result = await OrderServices.getAllOderFromDB(
+    req.query,
+    loggedInUserInfo
+  );
   sendResponse(res, {
     statusCode: 200,
     message: "Order Retrieved Succesfully",

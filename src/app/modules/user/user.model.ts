@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-this-alias */
 import bcrypt from "bcrypt";
-import { Schema, model } from "mongoose";
+import { Schema, Types, model } from "mongoose";
 import config from "../../config";
 import { IUser, UserModel } from "./user.interface";
 
@@ -39,6 +39,10 @@ const UserSchema = new Schema<IUser, UserModel>(
       default: "active",
       enum: ["active", "inactive", "rusticate"],
     },
+    branch: {
+      type: Schema.Types.ObjectId,
+      ref: "Branch",
+    },
   },
   {
     timestamps: true,
@@ -61,6 +65,7 @@ UserSchema.statics.isUserExist = async function (
       needsPasswordChange: 1,
       status: 1,
       email: 1,
+      branch: 1,
     }
   );
 };

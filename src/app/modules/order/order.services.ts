@@ -33,10 +33,21 @@ import {
 } from "./order.helper";
 import { IKitchenOrderData } from "../kitchenOrders/kitchenOrder.interface";
 import { KitchenOrder } from "../kitchenOrders/kitchenOrder.model";
+import { JwtPayload } from "jsonwebtoken";
+import { ENUM_USER } from "../../enums/EnumUser";
 
-const createOrderIntoDB = async (payload: TOrder) => {
+const createOrderIntoDB = async (payload: TOrder, loggedInuser: JwtPayload) => {
+  if (!loggedInuser?.branch) {
+    // add branch id to order
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      "You are not permitted to create order"
+    );
+  }
+  payload.branch = loggedInuser?.branch;
   const orderValidatorInstance = new orderDataValidator(payload);
   const orderData = await orderValidatorInstance.getPostableData();
+
   let result;
   if (orderData?.guestType == "registered") {
     result = await OrderForRegisteredCustomer.create(orderData);
@@ -119,13 +130,24 @@ const createOrderIntoDB = async (payload: TOrder) => {
 
 //
 
-const getAllOderFromDB = async (query: Record<string, any>) => {
+const getAllOderFromDB = async (
+  query: Record<string, any>,
+  loggedInUser: JwtPayload
+) => {
+  if (
+    loggedInUser.role !== ENUM_USER.ADMIN &&
+    loggedInUser.role !== ENUM_USER.SUPER_ADMIN
+  ) {
+    query.branch = loggedInUser?.branch;
+  }
+
   const oderQuery = new QueryBuilder(
     Order.find()
       .populate("RawMaterial")
-      .populate("customer")
+      .populate("custosmer")
       .populate("Table")
-      .populate("Waiter"),
+      .populate("Waiter")
+      .populate("branch"),
     query
   )
     .sort()
@@ -145,7 +167,8 @@ const getAllOderFromDB = async (query: Record<string, any>) => {
 const getSingleOrderForPatch = async (id: string) => {
   const result = await Order.findById(id)
     .populate("items.item")
-    .populate("customer");
+    .populate("customer")
+    .populate("branch");
   return result;
 };
 const getActiveTableList = async () => {

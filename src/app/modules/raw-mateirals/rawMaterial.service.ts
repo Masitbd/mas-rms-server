@@ -2,8 +2,26 @@ import { StatusCodes } from "http-status-codes";
 import AppError from "../../errors/AppError";
 import { IRawMaterials } from "./rawMaterials.interface";
 import RawMaterial from "./rawMaterials.model";
+import { JwtPayload } from "jsonwebtoken";
+import { ENUM_USER } from "../../enums/EnumUser";
+import { Types } from "mongoose";
+import { generateUniqueId } from "../../../utils/generateUniqueId";
 
-const post = async (params: IRawMaterials) => {
+const post = async (params: IRawMaterials, loggedInUserInfo: JwtPayload) => {
+  if (
+    loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
+    loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
+  ) {
+    params.branch = loggedInUserInfo?.branch;
+  }
+
+  const newId = await generateUniqueId<IRawMaterials>(
+    RawMaterial,
+    "M",
+    3,
+    "id"
+  );
+  params.id = newId;
   const result = await RawMaterial.create(params);
   return result;
 };
@@ -33,8 +51,15 @@ const remove = async (id: string) => {
   return true;
 };
 
-const getAll = async () => {
-  const result = await RawMaterial.find({});
+const getAll = async (loggedInUserInfo: JwtPayload) => {
+  const filterOption: Record<string, Types.ObjectId> = {};
+  if (
+    loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
+    loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
+  ) {
+    filterOption.branch = loggedInUserInfo?.branch;
+  }
+  const result = await RawMaterial.find(filterOption);
   return result;
 };
 

@@ -1,3 +1,5 @@
+import { Types } from "mongoose";
+
 export type IRawMaterials = {
   _id?: string;
   id: string;
@@ -7,4 +9,5 @@ export type IRawMaterials = {
   rate?: number;
   conversion: number;
   description?: string;
+  branch: Types.ObjectId;
 };

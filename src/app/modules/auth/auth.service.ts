@@ -47,6 +47,7 @@ const loginUser = async (payload: ILoginUser): Promise<ILoginUserResponse> => {
     status,
     email: userMail,
     id,
+    branch,
   } = isUserExist as IUserResponse;
 
   const profile = await Profile.findOne({ uuid: isUserExist?.uuid });
@@ -67,6 +68,7 @@ const loginUser = async (payload: ILoginUser): Promise<ILoginUserResponse> => {
       email: userMail,
       status: status,
       id: id,
+      branch: branch,
     },
     config.jwt.secret as Secret,
     config.jwt.expires_in as string

@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import { Model, Types } from "mongoose";
 import { IProfile } from "../profile/profile.interface";
+import { TBranch } from "../branch/branch.interface";
 
 export type IUser = {
   uuid: string;
@@ -11,6 +12,7 @@ export type IUser = {
   profile?: Types.ObjectId | IProfile;
   status: string;
   email: string;
+  branch: Types.ObjectId;
 };
 
 export type IUserResponse = {
@@ -23,6 +25,7 @@ export type IUserResponse = {
   profile?: IProfile;
   status: string;
   email: string;
+  branch: TBranch;
 };
 export type UserModel = {
   isUserExist(
@@ -34,4 +37,4 @@ export type UserModel = {
   ): Promise<boolean>;
 } & Model<IUser>;
 
-export const userFilterableFields = ["status", "brunch"];
+export const userFilterableFields = ["status", "branch"];

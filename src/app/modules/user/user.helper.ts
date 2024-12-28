@@ -22,6 +22,25 @@ export const userFinderAggregationBuilder = (
         preserveNullAndEmptyArrays: true,
       },
     },
+    {
+      $lookup: {
+        from: "branches",
+        localField: "user.branch",
+        foreignField: "_id",
+        as: "branch",
+      },
+    },
+    {
+      $unwind: {
+        path: "$branch",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        "user.password": 0,
+      },
+    },
   ];
   pipelineStage.push(...lookUpStage);
 

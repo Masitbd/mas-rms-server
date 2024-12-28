@@ -33,7 +33,6 @@ const MenuItemConsumptionSchema = new Schema<IMenuItemConsumption>(
     },
     cookingTime: {
       type: Number,
-      required: true,
     },
     itemCategory: {
       type: Schema.Types.ObjectId,
@@ -74,10 +73,12 @@ const MenuItemConsumptionSchema = new Schema<IMenuItemConsumption>(
     waiterTip: {
       type: Number,
     },
+    branch: { type: Schema.Types.ObjectId, ref: "Branch", required: true }, // Reference to the Branch model
+    images: { type: Schema.Types.ObjectId, ref: "Images" }, // Reference to the Images model
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt fields
-    versionKey: false, // Removes __v field
+    timestamps: true,
+    versionKey: false,
   }
 );
 

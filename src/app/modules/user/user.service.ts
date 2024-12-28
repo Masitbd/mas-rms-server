@@ -1,5 +1,5 @@
 import { StatusCodes as httpStatus, StatusCodes } from "http-status-codes";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import config from "../../config/index";
 import ApiError from "../../errors/AppError";
 import { IProfile } from "../profile/profile.interface";
@@ -11,11 +11,32 @@ import AppError from "../../errors/AppError";
 import { USER_ROLE } from "../../enums/userRole.enum";
 import { userFinderAggregationBuilder } from "./user.helper";
 import { IOptions, paginationHelpers } from "../../helpers/paginationHelper";
+import { JwtPayload } from "jsonwebtoken";
+import { ENUM_USER } from "../../enums/EnumUser";
 
 const createUser = async (
   profile: IProfile,
-  user: IUser
+  user: IUser,
+  loggedInUserInfo: JwtPayload
 ): Promise<IUser | null> => {
+  if (
+    loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
+    loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
+  ) {
+    if (user.role == ENUM_USER.ADMIN || user.role == ENUM_USER.SUPER_ADMIN) {
+      throw new ApiError(
+        httpStatus.FORBIDDEN,
+        "You are not authorized to perform this action"
+      );
+    }
+
+    if (user?.role !== ENUM_USER.USER && !user?.branch) {
+      user.branch = loggedInUserInfo?.branch;
+    }
+  }
+
+  // check for branch
+
   // If password is not given,set default password
   if (!user.password) {
     user.password = config.default_user_pass as string;
@@ -107,8 +128,19 @@ const getSIngleUser = async (uuid: string) => {
 const getALluser = async (
   searchTerm: string,
   filterOptions: Record<string, string>,
-  paginationOptions: Record<string, string>
+  paginationOptions: Record<string, string>,
+  loggedInUser: JwtPayload
 ) => {
+  console.log(loggedInUser);
+  if (
+    loggedInUser.role !== ENUM_USER.ADMIN &&
+    loggedInUser.role !== ENUM_USER.SUPER_ADMIN
+  ) {
+    filterOptions.branch = new Types.ObjectId(
+      loggedInUser.branch
+    ) as unknown as string;
+  }
+
   const searchablefields = ["name", "email", "phone", "uuid"];
   const { limit, page, skip, sortBy, sortOrder } =
     paginationHelpers.calculatePagination(paginationOptions as IOptions);
@@ -132,6 +164,7 @@ const getALluser = async (
 };
 
 const patchUserProfile = async (uuid: string, data: Partial<IProfile>) => {
+  console.log(data);
   const result = await Profile.findOneAndUpdate({ uuid: uuid }, data, {
     new: true,
   });
