@@ -55,9 +55,94 @@ const getMenuGroupItems = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getMenuItemsConsumption = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await reportServices.getMenuItemsAndConsumptionFromDB();
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: "Menu Item consumtion retrived successfully",
+      data: result,
+    });
+  }
+);
+const getMenuItemsCosting = catchAsync(async (req: Request, res: Response) => {
+  const result = await reportServices.getMenuItemsAndCostingFromDB();
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Menu Item consting retrived successfully",
+    data: result,
+  });
+});
+const getrawMaterialOnDaiylySales = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await reportServices.getRawMaterialConsumptionSalesFromDB(
+      req.query
+    );
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: "Raw material on sales retrived successfully",
+      data: result,
+    });
+  }
+);
+const getItemWiseRawMaterailsConsumption = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await reportServices.getItemWiseRawMaterialConsumptionFromDB(
+      req.query
+    );
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: "item Raw material retrived successfully",
+      data: result,
+    });
+  }
+);
+const getSalesDueStatement = catchAsync(async (req: Request, res: Response) => {
+  const result = await reportServices.getSaledDueStatementFromDB(req.query);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Sales Due Statement retrived successfully",
+    data: result,
+  });
+});
+const getWaiterWiseSales = catchAsync(async (req: Request, res: Response) => {
+  const result = await reportServices.getWaiteWiseSalesFromDB(req.query);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Waiter wise sales retrived successfully",
+    data: result,
+  });
+});
+const getWaiterWiseSalesStatement = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await reportServices.getWaiterWiseSalesStatementFromDB(
+      req.query
+    );
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: "Waiter wise sales statement retrived successfully",
+      data: result,
+    });
+  }
+);
+
 export const reportControllers = {
   getDailyStatement,
   getDailySatesStatementSummery,
   getItemWiseSalesSatement,
   getMenuGroupItems,
+  getMenuItemsConsumption,
+  getMenuItemsCosting,
+  getrawMaterialOnDaiylySales,
+  getItemWiseRawMaterailsConsumption,
+  getSalesDueStatement,
+  getWaiterWiseSales,
+  getWaiterWiseSalesStatement,
 };
