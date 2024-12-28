@@ -164,6 +164,7 @@ const getALluser = async (
 };
 
 const patchUserProfile = async (uuid: string, data: Partial<IProfile>) => {
+  console.log(data);
   const result = await Profile.findOneAndUpdate({ uuid: uuid }, data, {
     new: true,
   });

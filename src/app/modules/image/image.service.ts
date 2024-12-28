@@ -9,21 +9,25 @@ const uploadImages = async (params: { buffer: Buffer }[]) => {
   const uploadResults = await Promise.all(
     params.map(async (file) => await uploadToCloudinary(file.buffer))
   );
-  const result = await Promise.all(uploadResults);
 
-  const savedImages = await Images.create({ files: result });
+  const savedImages = await Images.create({ files: uploadResults });
   return savedImages._id;
 };
 
-const updateImage = async (files: { buffer: Buffer }[], id) => {
-  const doesExists = await Images.findById(id);
-  if (!doesExists) {
-    throw new AppError(StatusCodes.BAD_REQUEST, "Invalid image id");
-  }
+const updateImage = async (files: { buffer: Buffer }[], id: string) => {
   const uploadResults = await Promise.all(
     files.map(async (file) => await uploadToCloudinary(file.buffer))
   );
-  const result: TFIle[] = (await Promise.all(uploadResults)) as TFIle[];
+  const result: TFIle[] = uploadResults as TFIle[];
+  if (id == "undefined" || id == "null") {
+    const newResult = await Images.create({ files: uploadResults });
+    return newResult._id;
+  }
+  const doesExists = await Images.findById(id);
+  if (!doesExists) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Invalid id");
+  }
+
   doesExists.files = [
     ...doesExists.files,
     ...result.map((r: TFIle) => ({
