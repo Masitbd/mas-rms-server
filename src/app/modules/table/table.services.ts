@@ -3,6 +3,7 @@ import { TTable } from "./table.interface";
 import { Table } from "./table.model";
 import { Types } from "mongoose";
 import { ENUM_USER } from "../../enums/EnumUser";
+import { generateTableId } from "../../../utils/generateUniqueId";
 
 // ? create
 const createTableIntoDB = async (
@@ -12,7 +13,7 @@ const createTableIntoDB = async (
   if (loggedInUserInfo?.branch) {
     payload.branch = loggedInUserInfo.branch; //? add branch id to table object
   }
-  //?  payload.tid = await generateTableId();   // deprecated by murad vai it will manual input
+  payload.tid = await generateTableId(); // deprecated by murad vai it will manual input
   // now save in db with tid
   const result = await Table.create(payload);
   return result;

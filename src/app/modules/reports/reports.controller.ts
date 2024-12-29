@@ -5,7 +5,10 @@ import { Request, Response } from "express";
 import { reportServices } from "./report.service";
 
 const getDailyStatement = catchAsync(async (req: Request, res: Response) => {
-  const result = await reportServices.getDailyStatementFromDB(req.query);
+  const result = await reportServices.getDailyStatementFromDB(
+    req.query,
+    req.user
+  );
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -18,7 +21,8 @@ const getDailyStatement = catchAsync(async (req: Request, res: Response) => {
 const getDailySatesStatementSummery = catchAsync(
   async (req: Request, res: Response) => {
     const result = await reportServices.getDailySalesStatementSummeryFromDB(
-      req.query
+      req.query,
+      req.user
     );
     sendResponse(res, {
       statusCode: StatusCodes.OK,
@@ -34,7 +38,8 @@ const getDailySatesStatementSummery = catchAsync(
 const getItemWiseSalesSatement = catchAsync(
   async (req: Request, res: Response) => {
     const result = await reportServices.getItemWiseSalesSatetementFromDB(
-      req.query
+      req.query,
+      req.user
     );
     sendResponse(res, {
       statusCode: StatusCodes.OK,
@@ -46,7 +51,10 @@ const getItemWiseSalesSatement = catchAsync(
 );
 
 const getMenuGroupItems = catchAsync(async (req: Request, res: Response) => {
-  const result = await reportServices.getMenuGroupWithItemsFromDB();
+  const result = await reportServices.getMenuGroupWithItemsFromDB(
+    req.query,
+    req.user
+  );
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -57,7 +65,10 @@ const getMenuGroupItems = catchAsync(async (req: Request, res: Response) => {
 
 const getMenuItemsConsumption = catchAsync(
   async (req: Request, res: Response) => {
-    const result = await reportServices.getMenuItemsAndConsumptionFromDB();
+    const result = await reportServices.getMenuItemsAndConsumptionFromDB(
+      req.query,
+      req.user
+    );
     sendResponse(res, {
       statusCode: StatusCodes.OK,
       success: true,
@@ -67,7 +78,10 @@ const getMenuItemsConsumption = catchAsync(
   }
 );
 const getMenuItemsCosting = catchAsync(async (req: Request, res: Response) => {
-  const result = await reportServices.getMenuItemsAndCostingFromDB();
+  const result = await reportServices.getMenuItemsAndCostingFromDB(
+    req.query,
+    req.user
+  );
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -78,7 +92,8 @@ const getMenuItemsCosting = catchAsync(async (req: Request, res: Response) => {
 const getrawMaterialOnDaiylySales = catchAsync(
   async (req: Request, res: Response) => {
     const result = await reportServices.getRawMaterialConsumptionSalesFromDB(
-      req.query
+      req.query,
+      req.user
     );
     sendResponse(res, {
       statusCode: StatusCodes.OK,
@@ -91,7 +106,8 @@ const getrawMaterialOnDaiylySales = catchAsync(
 const getItemWiseRawMaterailsConsumption = catchAsync(
   async (req: Request, res: Response) => {
     const result = await reportServices.getItemWiseRawMaterialConsumptionFromDB(
-      req.query
+      req.query,
+      req.user
     );
     sendResponse(res, {
       statusCode: StatusCodes.OK,
@@ -102,7 +118,10 @@ const getItemWiseRawMaterailsConsumption = catchAsync(
   }
 );
 const getSalesDueStatement = catchAsync(async (req: Request, res: Response) => {
-  const result = await reportServices.getSaledDueStatementFromDB(req.query);
+  const result = await reportServices.getSaledDueStatementFromDB(
+    req.query,
+    req.user
+  );
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -111,7 +130,10 @@ const getSalesDueStatement = catchAsync(async (req: Request, res: Response) => {
   });
 });
 const getWaiterWiseSales = catchAsync(async (req: Request, res: Response) => {
-  const result = await reportServices.getWaiteWiseSalesFromDB(req.query);
+  const result = await reportServices.getWaiteWiseSalesFromDB(
+    req.query,
+    req.user
+  );
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -122,7 +144,8 @@ const getWaiterWiseSales = catchAsync(async (req: Request, res: Response) => {
 const getWaiterWiseSalesStatement = catchAsync(
   async (req: Request, res: Response) => {
     const result = await reportServices.getWaiterWiseSalesStatementFromDB(
-      req.query
+      req.query,
+      req.user
     );
     sendResponse(res, {
       statusCode: StatusCodes.OK,

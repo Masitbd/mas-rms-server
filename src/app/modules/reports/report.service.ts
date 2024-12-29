@@ -1,10 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { PipelineStage } from "mongoose";
+import mongoose, { mongo, PipelineStage } from "mongoose";
 import { Order } from "../order/order.model";
 
 import MenuItemConsumption from "../rawMaterialConsumption/rawMaterialConsumption.model";
 
-const getDailyStatementFromDB = async (payload: Record<string, any>) => {
+const getDailyStatementFromDB = async (
+  payload: Record<string, any>,
+  user: any
+) => {
   // Default to current date if no startDate and endDate are provided
   const startDate = payload.startDate
     ? new Date(payload.startDate)
@@ -14,6 +17,8 @@ const getDailyStatementFromDB = async (payload: Record<string, any>) => {
   startDate.setHours(0, 0, 0, 0);
   endDate.setHours(23, 59, 59, 999);
 
+  const branch = user?.branch || payload.branch;
+
   const query: PipelineStage[] = [
     {
       $match: {
@@ -21,6 +26,7 @@ const getDailyStatementFromDB = async (payload: Record<string, any>) => {
           $gte: startDate,
           $lte: endDate,
         },
+        branch: new mongoose.Types.ObjectId(branch),
       },
     },
     {
@@ -137,13 +143,17 @@ const getDailyStatementFromDB = async (payload: Record<string, any>) => {
 // ? daily sales statement summery
 
 const getDailySalesStatementSummeryFromDB = async (
-  query: Record<string, any>
+  query: Record<string, any>,
+  user: any
 ) => {
   const startDate = new Date(query.startDate);
   const endDate = new Date(query.endDate);
   startDate.setUTCHours(0, 0, 0, 0);
 
   endDate.setUTCHours(23, 59, 59, 999);
+
+  const branch = user?.branch || query.branch;
+
   const queryParams: PipelineStage[] = [
     {
       $match: {
@@ -151,6 +161,7 @@ const getDailySalesStatementSummeryFromDB = async (
           $gte: startDate,
           $lte: endDate,
         },
+        branch: new mongoose.Types.ObjectId(branch),
       },
     },
     {
@@ -218,11 +229,16 @@ const getDailySalesStatementSummeryFromDB = async (
 
 // ! item wise sales satement
 
-const getItemWiseSalesSatetementFromDB = async (query: Record<string, any>) => {
+const getItemWiseSalesSatetementFromDB = async (
+  query: Record<string, any>,
+  user: any
+) => {
   const startDate = new Date(query.startDate);
   const endDate = new Date(query.endDate);
   startDate.setUTCHours(0, 0, 0, 0);
   endDate.setUTCHours(23, 59, 59, 999);
+
+  const branch = user?.branch || query.branch;
 
   const pipelineAggregate: PipelineStage[] = [
     {
@@ -231,6 +247,7 @@ const getItemWiseSalesSatetementFromDB = async (query: Record<string, any>) => {
           $gte: startDate,
           $lte: endDate,
         },
+        branch: new mongoose.Types.ObjectId(branch),
       },
     },
     {
@@ -325,8 +342,18 @@ const getItemWiseSalesSatetementFromDB = async (query: Record<string, any>) => {
   return result;
 };
 
-const getMenuGroupWithItemsFromDB = async () => {
+const getMenuGroupWithItemsFromDB = async (
+  payload: Record<string, any>,
+  user: any
+) => {
+  const branch = user?.branch || payload.branch;
   const query = [
+    {
+      $match: {
+        branch: new mongoose.Types.ObjectId(branch),
+      },
+    },
+
     {
       $lookup: {
         from: "itemcategroys", // Replace with your actual MenuGroup collection name
@@ -402,8 +429,17 @@ const getMenuGroupWithItemsFromDB = async () => {
 };
 
 // menu item and coinsumptionconst
-const getMenuItemsAndConsumptionFromDB = async () => {
+const getMenuItemsAndConsumptionFromDB = async (
+  payload: Record<string, any>,
+  user: any
+) => {
+  const branch = user?.branch || payload.branch;
   const query = [
+    {
+      $match: {
+        branch: new mongoose.Types.ObjectId(branch),
+      },
+    },
     {
       $lookup: {
         from: "itemcategroys",
@@ -517,8 +553,17 @@ const getMenuItemsAndConsumptionFromDB = async () => {
   }
 };
 //
-const getMenuItemsAndCostingFromDB = async () => {
+const getMenuItemsAndCostingFromDB = async (
+  payload: Record<string, any>,
+  user: any
+) => {
+  const branch = user?.branch || payload.branch;
   const query = [
+    {
+      $match: {
+        branch: new mongoose.Types.ObjectId(branch),
+      },
+    },
     {
       $lookup: {
         from: "itemcategroys",
@@ -652,12 +697,14 @@ const getMenuItemsAndCostingFromDB = async () => {
 // raw material consumption stattement based on daily sales
 
 const getRawMaterialConsumptionSalesFromDB = async (
-  query: Record<string, any>
+  query: Record<string, any>,
+  user: any
 ) => {
   const startDate = new Date(query.startDate);
   const endDate = new Date(query.endDate);
   startDate.setUTCHours(0, 0, 0, 0);
   endDate.setUTCHours(23, 59, 59, 999);
+  const branch = user?.branch || query.branch;
   const pipelineAggregate: PipelineStage[] = [
     {
       $match: {
@@ -665,6 +712,7 @@ const getRawMaterialConsumptionSalesFromDB = async (
           $gte: startDate,
           $lte: endDate,
         },
+        branch: new mongoose.Types.ObjectId(branch),
       },
     },
     {
@@ -746,12 +794,14 @@ const getRawMaterialConsumptionSalesFromDB = async (
 
 // item wise raw materials consumption
 const getItemWiseRawMaterialConsumptionFromDB = async (
-  query: Record<string, any>
+  query: Record<string, any>,
+  user: any
 ) => {
   const startDate = new Date(query.startDate);
   const endDate = new Date(query.endDate);
   startDate.setUTCHours(0, 0, 0, 0);
   endDate.setUTCHours(23, 59, 59, 999);
+  const branch = user?.branch || query.branch;
   const pipelineAggregate: PipelineStage[] = [
     {
       $match: {
@@ -759,6 +809,7 @@ const getItemWiseRawMaterialConsumptionFromDB = async (
           $gte: startDate,
           $lte: endDate,
         },
+        branch: new mongoose.Types.ObjectId(branch),
       },
     },
     {
@@ -873,12 +924,15 @@ const getItemWiseRawMaterialConsumptionFromDB = async (
 
 //
 
-const getSaledDueStatementFromDB = async (query: Record<string, any>) => {
+const getSaledDueStatementFromDB = async (
+  query: Record<string, any>,
+  user: any
+) => {
   const startDate = new Date(query.startDate);
   const endDate = new Date(query.endDate);
   startDate.setUTCHours(0, 0, 0, 0);
   endDate.setUTCHours(23, 59, 59, 999);
-
+  const branch = user?.branch || query.branch;
   const pipelineAggregate: PipelineStage[] = [
     {
       $match: {
@@ -889,6 +943,7 @@ const getSaledDueStatementFromDB = async (query: Record<string, any>) => {
         due: {
           $gte: 0,
         },
+        branch: new mongoose.Types.ObjectId(branch),
       },
     },
     {
@@ -930,11 +985,16 @@ const getSaledDueStatementFromDB = async (query: Record<string, any>) => {
 
 // waite wise sales
 
-const getWaiteWiseSalesFromDB = async (query: Record<string, any>) => {
+const getWaiteWiseSalesFromDB = async (
+  query: Record<string, any>,
+  user: any
+) => {
   const startDate = new Date(query.startDate);
   const endDate = new Date(query.endDate);
   startDate.setUTCHours(0, 0, 0, 0);
   endDate.setUTCHours(23, 59, 59, 999);
+  const branch = user?.branch || query.branch;
+
   const pipelineAggregate: PipelineStage[] = [
     {
       $match: {
@@ -942,6 +1002,7 @@ const getWaiteWiseSalesFromDB = async (query: Record<string, any>) => {
           $gte: startDate,
           $lte: endDate,
         },
+        branch: new mongoose.Types.ObjectId(branch),
       },
     },
 
@@ -981,13 +1042,14 @@ const getWaiteWiseSalesFromDB = async (query: Record<string, any>) => {
 // waiter wise sales statement
 
 const getWaiterWiseSalesStatementFromDB = async (
-  query: Record<string, any>
+  query: Record<string, any>,
+  user: any
 ) => {
   const startDate = new Date(query.startDate);
   const endDate = new Date(query.endDate);
   startDate.setUTCHours(0, 0, 0, 0);
   endDate.setUTCHours(23, 59, 59, 999);
-
+  const branch = user?.branch || query.branch;
   const pipelineAggregate: PipelineStage[] = [
     {
       $match: {
@@ -995,6 +1057,7 @@ const getWaiterWiseSalesStatementFromDB = async (
           $gte: startDate,
           $lte: endDate,
         },
+        branch: new mongoose.Types.ObjectId(branch),
       },
     },
     {
