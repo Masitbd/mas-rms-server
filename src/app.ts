@@ -5,10 +5,11 @@ import notFound from "./app/middleware/notFound";
 import router from "./app/routes";
 import cookieParser from "cookie-parser";
 import NodeCache from "node-cache";
+import config from "./app/config";
 const app: Application = express();
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({ origin: config.front_end_url, credentials: true }));
 app.use(cookieParser());
 
 // Cache server

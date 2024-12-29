@@ -59,6 +59,9 @@ const createOrderIntoDB = async (payload: TOrder, loggedInuser: JwtPayload) => {
     { path: "items.item" },
     { path: "tableName" },
     { path: "waiter" },
+    {
+      path: "branch",
+    },
   ]);
 
   if (result?._id) {
@@ -300,6 +303,19 @@ const changeStatus = async (id: string, data: { status: ORDER_STATUS }) => {
   ]);
 };
 
+const getSIngleOrderWithPopulate = async (id: string) => {
+  const result = await Order.findById(id).populate([
+    { path: "customer" },
+    { path: "items.item" },
+    { path: "tableName" },
+    { path: "waiter" },
+    {
+      path: "branch",
+    },
+  ]);
+  return result;
+};
+
 export const OrderServices = {
   createOrderIntoDB,
   getAllOderFromDB,
@@ -309,4 +325,5 @@ export const OrderServices = {
   getActiveTableListDetails,
   updateOrder,
   changeStatus,
+  getSIngleOrderWithPopulate,
 };
