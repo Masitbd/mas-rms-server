@@ -41,4 +41,6 @@ routes.get(
 routes.patch("/:id", OrderControllers.updateOrder);
 routes.patch("/status/:id", OrderControllers.orderStatusUpdater);
 
+routes.get("/:id", OrderControllers.getSIngleOrderWithPopulate);
+
 export const OrderRoutes = routes;

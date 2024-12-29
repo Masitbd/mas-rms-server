@@ -100,6 +100,19 @@ const orderStatusUpdater = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
+const getSIngleOrderWithPopulate = catchAsync(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const result = await OrderServices.getSIngleOrderWithPopulate(id);
+    sendResponse(res, {
+      statusCode: 200,
+      message: "Order Retrieved Successfully",
+      success: true,
+      data: result,
+    });
+  }
+);
 export const OrderControllers = {
   createOrder,
   getAllOrder,
@@ -109,4 +122,5 @@ export const OrderControllers = {
   getActiveTableListDetails,
   updateOrder,
   orderStatusUpdater,
+  getSIngleOrderWithPopulate,
 };
