@@ -4,6 +4,7 @@ import { TMenuGroup } from "./menuGroup.interface";
 import { MenuGroup } from "./menuGroup.model";
 import { Types } from "mongoose";
 import { ENUM_USER } from "../../enums/EnumUser";
+import { branchFilterOptionProvider } from "../../helpers/BranchFilterOpeionProvider";
 
 const createMenuGroupIntoDB = async (
   payload: TMenuGroup,
@@ -23,14 +24,10 @@ const createMenuGroupIntoDB = async (
 //  get all
 
 const getAllMenuGroupIdFromDB = async (loggedInUserInfo: JwtPayload) => {
-  const filterOption: Record<string, Types.ObjectId> = {};
-  if (
-    loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
-    loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
-  ) {
-    filterOption.branch = loggedInUserInfo?.branch;
-  }
-  const result = await MenuGroup.find(filterOption).sort({ createdAt: -1 });
+  const filterOption = branchFilterOptionProvider(loggedInUserInfo);
+  const result = await MenuGroup.find(filterOption)
+    .sort({ createdAt: -1 })
+    .populate("branch");
   return result;
 };
 

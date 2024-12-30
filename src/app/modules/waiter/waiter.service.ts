@@ -4,6 +4,7 @@ import { TWaiter } from "./waiter.interface";
 import { Waiter } from "./waiter.model";
 import { Types } from "mongoose";
 import { ENUM_USER } from "../../enums/EnumUser";
+import { branchFilterOptionProvider } from "../../helpers/BranchFilterOpeionProvider";
 
 const createWaiterIntoDB = async (
   payload: TWaiter,
@@ -23,14 +24,10 @@ const createWaiterIntoDB = async (
 //  get all
 
 const getAllWaiterIdFromDB = async (loggedInUserInfo: JwtPayload) => {
-  const filterOption: Record<string, Types.ObjectId> = {};
-  if (
-    loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
-    loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
-  ) {
-    filterOption.branch = loggedInUserInfo?.branch;
-  }
-  const result = await Waiter.find(filterOption).sort({ createdAt: -1 });
+  const branchFilterOption = branchFilterOptionProvider(loggedInUserInfo);
+  const result = await Waiter.find(branchFilterOption)
+    .sort({ createdAt: -1 })
+    .populate("branch");
   return result;
 };
 

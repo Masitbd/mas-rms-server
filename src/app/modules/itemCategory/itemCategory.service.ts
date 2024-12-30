@@ -5,6 +5,7 @@ import { TItemCategory } from "./itemCategory.interface";
 import { ItemCategroy } from "./itemCategory.model";
 import { Types } from "mongoose";
 import { ENUM_USER } from "../../enums/EnumUser";
+import { branchFilterOptionProvider } from "../../helpers/BranchFilterOpeionProvider";
 
 const createItemCategoryIntoDB = async (
   payload: TItemCategory,
@@ -27,19 +28,13 @@ const getAllItemCategoryIdFromDB = async (
   payload: any,
   loggedInUserInfo: JwtPayload
 ) => {
-  const filterOption: Record<string, Types.ObjectId> = {};
-  if (
-    loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
-    loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
-  ) {
-    filterOption.branch = loggedInUserInfo?.branch;
-  }
+  const filterOption = branchFilterOptionProvider(loggedInUserInfo);
   const isCondition = payload?.menuGroup
     ? { menuGroup: payload?.menuGroup }
     : {};
-  console.log(filterOption);
   const result = await ItemCategroy.find({ $and: [filterOption, isCondition] })
     .populate("menuGroup", "name")
+    .populate("branch")
     .sort({ createdAt: -1 });
   return result;
 };

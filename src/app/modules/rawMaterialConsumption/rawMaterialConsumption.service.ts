@@ -7,6 +7,7 @@ import { StatusCodes } from "http-status-codes";
 import { JwtPayload } from "jsonwebtoken";
 import { ENUM_USER } from "../../enums/EnumUser";
 import { generateUniqueId } from "../../../utils/generateUniqueId";
+import { branchFilterOptionProvider } from "../../helpers/BranchFilterOpeionProvider";
 
 interface FetchAllParams {
   page?: number;
@@ -108,7 +109,7 @@ class MenuItemConsumptionService {
         loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
         loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
       ) {
-        query.$and = [{ branch: new Types.ObjectId(loggedInUserInfo?.branch) }];
+        query.$and = [branchFilterOptionProvider(loggedInUserInfo)];
       }
 
       // Add category filter
@@ -129,6 +130,7 @@ class MenuItemConsumptionService {
       const items = await MenuItemConsumption.find(query)
         .populate("consumptions.item", "materialName")
         .populate("images")
+        .populate("branch")
         .sort({ itemName: 1 }) // Sort by itemName
         .skip(skip)
         .limit(limit)

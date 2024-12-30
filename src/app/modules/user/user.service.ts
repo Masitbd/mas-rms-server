@@ -30,9 +30,11 @@ const createUser = async (
       );
     }
 
+    console.log("isUser", user);
     if (user?.role !== ENUM_USER.USER && !user?.branch) {
       user.branch = loggedInUserInfo?.branch;
     }
+    console.log("isUser 2", user);
   }
 
   // check for branch
@@ -164,7 +166,6 @@ const getALluser = async (
 };
 
 const patchUserProfile = async (uuid: string, data: Partial<IProfile>) => {
-  console.log(data);
   const result = await Profile.findOneAndUpdate({ uuid: uuid }, data, {
     new: true,
   });
