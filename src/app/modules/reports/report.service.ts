@@ -3,6 +3,7 @@ import mongoose, { mongo, PipelineStage } from "mongoose";
 import { Order } from "../order/order.model";
 
 import MenuItemConsumption from "../rawMaterialConsumption/rawMaterialConsumption.model";
+import { Branch } from "../branch/branch.model";
 
 const getDailyStatementFromDB = async (
   payload: Record<string, any>,
@@ -27,6 +28,20 @@ const getDailyStatementFromDB = async (
           $lte: endDate,
         },
         branch: new mongoose.Types.ObjectId(branch),
+      },
+    },
+    {
+      $lookup: {
+        from: "branches",
+        localField: "branch",
+        foreignField: "_id",
+        as: "branchDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$branchDetails",
+        preserveNullAndEmptyArrays: true,
       },
     },
     {
@@ -80,6 +95,7 @@ const getDailyStatementFromDB = async (
             },
           },
         },
+        branchDetails: { $first: "$branchDetails" },
         records: {
           $push: {
             billNo: "$billNo",
@@ -122,6 +138,7 @@ const getDailyStatementFromDB = async (
             timePeriods: "$timePeriods",
           },
         },
+        branchDetails: { $first: "$branchDetails" },
       },
     },
     {
@@ -129,6 +146,7 @@ const getDailyStatementFromDB = async (
         _id: 0,
         groupDate: "$_id",
         paymentGroups: 1,
+        branchDetails: 1,
       },
     },
     {
@@ -162,6 +180,20 @@ const getDailySalesStatementSummeryFromDB = async (
           $lte: endDate,
         },
         branch: new mongoose.Types.ObjectId(branch),
+      },
+    },
+    {
+      $lookup: {
+        from: "branches",
+        localField: "branch",
+        foreignField: "_id",
+        as: "branchDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$branchDetails",
+        preserveNullAndEmptyArrays: true,
       },
     },
     {
@@ -219,6 +251,7 @@ const getDailySalesStatementSummeryFromDB = async (
         dateWiseSummary: 1,
         paymentModeSummary: 1,
         total: { $arrayElemAt: ["$total", 0] },
+        branchDetails: 1,
       },
     },
   ];
@@ -1169,6 +1202,109 @@ const getWaiterWiseSalesStatementFromDB = async (
   return result;
 };
 
+//!  get dashboard static data
+
+const getDashboardStatisticsDataFromDB = async () => {
+  const todayStart = new Date();
+  todayStart.setUTCHours(0, 0, 0, 0); // Start of today
+  const todayEnd = new Date();
+  todayEnd.setUTCHours(23, 59, 59, 999);
+
+  const startDate = new Date();
+  startDate.setUTCDate(startDate.getUTCDate() - 30);
+  startDate.setUTCHours(0, 0, 0, 0);
+
+  const pipeLineAggregate = [
+    {
+      $lookup: {
+        from: "orders",
+        localField: "_id",
+        foreignField: "branch",
+        as: "orderData",
+      },
+    },
+    {
+      $project: {
+        branchName: "$name",
+        totalAmount: {
+          $cond: {
+            if: { $eq: [{ $size: "$orderData" }, 0] },
+            then: "N/A",
+            else: { $sum: "$orderData.paid" },
+          },
+        },
+        totalBills: {
+          $cond: {
+            if: { $eq: [{ $size: "$orderData" }, 0] },
+            then: "N/A",
+            else: { $sum: "$orderData.totalBill" },
+          },
+        },
+        totalDue: {
+          $cond: {
+            if: { $eq: [{ $size: "$orderData" }, 0] },
+            then: 0,
+            else: { $sum: "$orderData.due" },
+          },
+        },
+        todayPaid: {
+          $cond: {
+            if: { $eq: [{ $size: "$orderData" }, 0] },
+            then: 0,
+            else: {
+              $sum: {
+                $map: {
+                  input: "$orderData",
+                  as: "order",
+                  in: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $gte: ["$$order.createdAt", todayStart] },
+                          { $lte: ["$$order.createdAt", todayEnd] },
+                        ],
+                      },
+                      "$$order.paid",
+                      0,
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+        lastMonthTotalPaid: {
+          $cond: {
+            if: { $eq: [{ $size: "$orderData" }, 0] },
+            then: 0,
+            else: {
+              $sum: {
+                $map: {
+                  input: "$orderData",
+                  as: "order",
+                  in: {
+                    $cond: [
+                      {
+                        $and: [{ $gte: ["$$order.createdAt", startDate] }],
+                      },
+                      "$$order.paid",
+                      0,
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  ];
+
+  const branchWiseData = await Branch.aggregate(pipeLineAggregate);
+
+  return { branchWiseData };
+};
+
 export const reportServices = {
   getDailyStatementFromDB,
   getDailySalesStatementSummeryFromDB,
@@ -1181,4 +1317,5 @@ export const reportServices = {
   getSaledDueStatementFromDB,
   getWaiteWiseSalesFromDB,
   getWaiterWiseSalesStatementFromDB,
+  getDashboardStatisticsDataFromDB,
 };
