@@ -4,7 +4,7 @@ import { TWaiter } from "./waiter.interface";
 const waiterSchema = new Schema<TWaiter>(
   {
     uid: { type: String, required: true, unique: true },
-    name: { type: String, required: true },
+    name: { type: String, required: true, unique: true },
     remarks: { type: String },
     branch: { type: Schema.Types.ObjectId, ref: "Branch" },
   },
