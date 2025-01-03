@@ -13,6 +13,12 @@ export const branchFilterOptionProvider = (user: JwtPayload) => {
       ...[
         { branch: new Types.ObjectId(user?.branch) },
         { branch: { $exists: false } },
+        {
+          branch: null,
+        },
+        {
+          branch: undefined,
+        },
       ]
     );
   }

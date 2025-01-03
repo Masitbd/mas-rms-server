@@ -122,6 +122,7 @@ class MenuItemConsumptionService {
         query.itemGroup = new Types.ObjectId(itemGroup);
       }
 
+      console.log(JSON.stringify(query));
       // Get total count for pagination
       const total = await MenuItemConsumption.countDocuments(query);
       const totalPages = Math.ceil(total / limit);

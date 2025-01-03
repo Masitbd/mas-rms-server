@@ -165,10 +165,18 @@ const getALluser = async (
   };
 };
 
-const patchUserProfile = async (uuid: string, data: Partial<IProfile>) => {
-  const result = await Profile.findOneAndUpdate({ uuid: uuid }, data, {
+const patchUserProfile = async (
+  uuid: string,
+  data: Partial<IProfile & { branch: string }>
+) => {
+  const { branch, ...rest } = data;
+  if (branch) {
+    await User.findOneAndUpdate({ uuid: uuid }, { branch: branch });
+  }
+  const result = await Profile.findOneAndUpdate({ uuid: uuid }, rest, {
     new: true,
   });
+
   return result;
 };
 

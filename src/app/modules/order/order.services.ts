@@ -27,6 +27,7 @@ import { StatusCodes } from "http-status-codes";
 import {
   fetchOrderIfExists,
   handleKitchenOrders,
+  isTableOccupied,
   updateCache,
   updateKitchenCache,
   updateOrderInDB,
@@ -35,6 +36,7 @@ import { IKitchenOrderData } from "../kitchenOrders/kitchenOrder.interface";
 import { KitchenOrder } from "../kitchenOrders/kitchenOrder.model";
 import { JwtPayload } from "jsonwebtoken";
 import { ENUM_USER } from "../../enums/EnumUser";
+import { ENUM_ORDER_STATUS } from "../../enums/EnumOrderStatus";
 
 const createOrderIntoDB = async (payload: TOrder, loggedInuser: JwtPayload) => {
   if (!loggedInuser?.branch) {
@@ -45,6 +47,17 @@ const createOrderIntoDB = async (payload: TOrder, loggedInuser: JwtPayload) => {
     );
   }
   payload.branch = loggedInuser?.branch;
+
+  // Checking if table is occupied
+  if (payload?.tableName) {
+    const isOccupied = await isTableOccupied(
+      payload?.tableName as unknown as string,
+      loggedInuser?.branch
+    );
+    if (isOccupied) {
+      throw new AppError(StatusCodes.CONFLICT, "Table is already occupied");
+    }
+  }
   const orderValidatorInstance = new orderDataValidator(payload);
   const orderData = await orderValidatorInstance.getPostableData();
 
@@ -65,33 +78,33 @@ const createOrderIntoDB = async (payload: TOrder, loggedInuser: JwtPayload) => {
   ]);
 
   if (result?._id) {
-    // 1. post active table
-    const tableName = await result.get("tableName");
     const billNo = await result.get("billNo");
+    const tableName = await result.get("tableName");
     const waiter = await result.get("waiter");
+    // 1. post active table
 
-    if (tableName) {
-      let activeTableList: string[] = [];
-      if (cacheServer.has("activeTableList")) {
-        activeTableList = cacheServer.get("activeTableList") as string[];
+    // if (tableName) {
+    //   let activeTableList: string[] = [];
+    //   if (cacheServer.has("activeTableList")) {
+    //     activeTableList = cacheServer.get("activeTableList") as string[];
 
-        if (Array.isArray(activeTableList) && tableName) {
-          activeTableList.push(tableName?._id?.toString());
-        }
-      } else if (tableName) {
-        activeTableList = [tableName?._id?.toString()];
-      }
-      cacheServer.set("activeTableList", activeTableList);
+    //     if (Array.isArray(activeTableList) && tableName) {
+    //       activeTableList.push(tableName?._id?.toString());
+    //     }
+    //   } else if (tableName) {
+    //     activeTableList = [tableName?._id?.toString()];
+    //   }
+    //   cacheServer.set("activeTableList", activeTableList);
 
-      const tableData: IActiveTable = {
-        billNo: billNo,
-        table: tableName.toObject(),
-        waiter: waiter ? waiter.toObject() : "",
-        orderId: result?._id.toString(),
-      };
+    //   const tableData: IActiveTable = {
+    //     billNo: billNo,
+    //     table: tableName.toObject(),
+    //     waiter: waiter ? waiter.toObject() : "",
+    //     orderId: result?._id.toString(),
+    //   };
 
-      cacheServer.set(tableName?._id?.toString(), tableData, 0);
-    }
+    //   cacheServer.set(tableName?._id?.toString(), tableData, 0);
+    // }
     // 2. for kitchen order
     const kitchenOrderNo = billNo + "001";
     const items = await result?.get("items");
@@ -147,7 +160,7 @@ const getAllOderFromDB = async (
   const oderQuery = new QueryBuilder(
     Order.find()
       .populate("RawMaterial")
-      .populate("custosmer")
+      .populate("customer")
       .populate("Table")
       .populate("Waiter")
       .populate("branch"),
@@ -174,18 +187,32 @@ const getSingleOrderForPatch = async (id: string) => {
     .populate("branch");
   return result;
 };
-const getActiveTableList = async () => {
-  const result = cacheServer.get("activeTableList");
-  return result;
+const getActiveTableList = async (loggedInUser: JwtPayload) => {
+  const orders = await Order.find({
+    branch: loggedInUser?.branch,
+    status: ENUM_ORDER_STATUS.NOT_POSTED,
+    tableName: { $exists: true },
+  }).select(["tableName"]);
+
+  return orders?.length ? orders?.map((O) => O?.tableName.toString()) : [];
 };
 
-const getActiveTableListDetails = async () => {
-  const tables: string[] = cacheServer.get("activeTableList") as string[];
-  if (tables && tables?.length > 0) {
-    const result = cacheServer.mget(tables);
-    return result;
+const getActiveTableListDetails = async (loggedInUser: JwtPayload) => {
+  if (!loggedInUser?.branch) {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      "You are not permitted to access the table list"
+    );
   }
-  return [];
+  const tables = await Order.find({
+    branch: loggedInUser?.branch,
+    status: ENUM_ORDER_STATUS.NOT_POSTED,
+    tableName: { $exists: true },
+  })
+    .select(["billNo", "tableName", "waiter", "_id"])
+    .populate(["tableName", "waiter"]);
+
+  return tables;
 };
 
 const getKitchenOrderListForSingleBill = async (id: string) => {
@@ -262,21 +289,21 @@ const changeStatus = async (id: string, data: { status: ORDER_STATUS }) => {
         await KitchenOrder.insertMany(formatedData);
       }
 
-      // handling table data
-      if (
-        updatedData?.tableName &&
-        cacheServer.has(updatedData?.tableName.toString())
-      ) {
-        cacheServer.del(updatedData.tableName.toString());
-        const activeTableList: string[] = cacheServer.get(
-          "activeTableList"
-        ) as string[];
-        const index = activeTableList.indexOf(updatedData.tableName.toString());
-        if (index > -1) {
-          activeTableList.splice(index, 1);
-          cacheServer.set("activeTableList", activeTableList);
-        }
-      }
+      // // handling table data
+      // if (
+      //   updatedData?.tableName &&
+      //   cacheServer.has(updatedData?.tableName.toString())
+      // ) {
+      //   cacheServer.del(updatedData.tableName.toString());
+      //   const activeTableList: string[] = cacheServer.get(
+      //     "activeTableList"
+      //   ) as string[];
+      //   const index = activeTableList.indexOf(updatedData.tableName.toString());
+      //   if (index > -1) {
+      //     activeTableList.splice(index, 1);
+      //     cacheServer.set("activeTableList", activeTableList);
+      //   }
+      // }
 
       // handling kitchenOrderList
 
