@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-this-alias */
 import bcrypt from "bcrypt";
-import { Schema, Types, model } from "mongoose";
+import { Schema, model } from "mongoose";
 import config from "../../config";
 import { IUser, UserModel } from "./user.interface";
 

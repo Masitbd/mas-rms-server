@@ -4,6 +4,7 @@ import { Table } from "./table.model";
 import { Types } from "mongoose";
 import { ENUM_USER } from "../../enums/EnumUser";
 import { generateTableId } from "../../../utils/generateUniqueId";
+import { branchFilterOptionProvider } from "../../helpers/BranchFilterOpeionProvider";
 
 // ? create
 const createTableIntoDB = async (
@@ -14,6 +15,7 @@ const createTableIntoDB = async (
     payload.branch = loggedInUserInfo.branch; //? add branch id to table object
   }
   payload.tid = await generateTableId(); // deprecated by murad vai it will manual input
+
   // now save in db with tid
   const result = await Table.create(payload);
   return result;
@@ -22,14 +24,8 @@ const createTableIntoDB = async (
 //  getAll
 
 const getAllTableListFromDB = async (loggedInUserInfo: JwtPayload) => {
-  const filterOption: Record<string, Types.ObjectId> = {};
-  if (
-    loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
-    loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
-  ) {
-    filterOption.branch = loggedInUserInfo?.branch;
-  }
-  const result = await Table.find(filterOption);
+  const filterOption = branchFilterOptionProvider(loggedInUserInfo);
+  const result = await Table.find(filterOption).populate("branch");
   return result;
 };
 

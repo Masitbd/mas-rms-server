@@ -73,7 +73,7 @@ const MenuItemConsumptionSchema = new Schema<IMenuItemConsumption>(
     waiterTip: {
       type: Number,
     },
-    branch: { type: Schema.Types.ObjectId, ref: "Branch", required: true }, // Reference to the Branch model
+    branch: [{ type: Schema.Types.ObjectId, ref: "Branch" }], // Reference to the Branch model
     images: { type: Schema.Types.ObjectId, ref: "Images" }, // Reference to the Images model
   },
   {

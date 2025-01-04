@@ -10,7 +10,7 @@ const itemCategoySchema = new Schema<TItemCategory>(
       ref: "MenuGroup",
       required: true,
     },
-    branch: { type: Schema.Types.ObjectId, required: true, ref: "Branch" },
+    branch: { type: Schema.Types.ObjectId, ref: "Branch" },
   },
   {
     timestamps: true,

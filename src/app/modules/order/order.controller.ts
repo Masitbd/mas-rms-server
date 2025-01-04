@@ -44,7 +44,7 @@ const getSingleOrderForPatch = catchAsync(
 );
 
 const getActiveTableList = catchAsync(async (req: Request, res: Response) => {
-  const result = await OrderServices.getActiveTableList();
+  const result = await OrderServices.getActiveTableList(req.user);
   sendResponse(res, {
     statusCode: 200,
     message: "Active Table List Retrieved Successfully",
@@ -69,7 +69,7 @@ const getKitchenOrderListForSingleBill = catchAsync(
 
 const getActiveTableListDetails = catchAsync(
   async (req: Request, res: Response) => {
-    const result = await OrderServices.getActiveTableListDetails();
+    const result = await OrderServices.getActiveTableListDetails(req.user);
     sendResponse(res, {
       statusCode: 200,
       message: "Active Table List Details Retrieved Successfully",

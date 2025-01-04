@@ -6,6 +6,7 @@ import { JwtPayload } from "jsonwebtoken";
 import { ENUM_USER } from "../../enums/EnumUser";
 import { Types } from "mongoose";
 import { generateUniqueId } from "../../../utils/generateUniqueId";
+import { branchFilterOptionProvider } from "../../helpers/BranchFilterOpeionProvider";
 
 const post = async (params: IRawMaterials, loggedInUserInfo: JwtPayload) => {
   if (
@@ -52,14 +53,8 @@ const remove = async (id: string) => {
 };
 
 const getAll = async (loggedInUserInfo: JwtPayload) => {
-  const filterOption: Record<string, Types.ObjectId> = {};
-  if (
-    loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
-    loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
-  ) {
-    filterOption.branch = loggedInUserInfo?.branch;
-  }
-  const result = await RawMaterial.find(filterOption);
+  const filterOption = branchFilterOptionProvider(loggedInUserInfo);
+  const result = await RawMaterial.find(filterOption).populate("branch");
   return result;
 };
 

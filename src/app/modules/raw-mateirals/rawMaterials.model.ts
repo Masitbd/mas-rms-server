@@ -10,7 +10,7 @@ const RawMaterialSchema = new Schema<IRawMaterials>(
     rate: { type: Number, default: true }, // Optional field with a default value
     conversion: { type: Number, required: true },
     description: { type: String }, // Optional field
-    branch: { type: Schema.Types.ObjectId, ref: "Branch", required: true }, // Reference to the Branch model
+    branch: { type: Schema.Types.ObjectId, ref: "Branch" }, // Reference to the Branch model
   },
   { timestamps: true }
 );

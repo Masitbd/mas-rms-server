@@ -6,6 +6,7 @@ import { Customer } from "./customer.model";
 import { JwtPayload } from "jsonwebtoken";
 import { Types } from "mongoose";
 import { ENUM_USER } from "../../enums/EnumUser";
+import { branchFilterOptionProvider } from "../../helpers/BranchFilterOpeionProvider";
 
 // ? create
 const createCustomerIntoDB = async (
@@ -23,14 +24,8 @@ const createCustomerIntoDB = async (
 
 // ? get all
 const getAllCustomerIntoDB = async (loggedInUserInfo: JwtPayload) => {
-  const filterOption: Record<string, Types.ObjectId> = {};
-  if (
-    loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
-    loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
-  ) {
-    filterOption.branch = loggedInUserInfo?.branch;
-  }
-  const result = await Customer.find(filterOption);
+  const branchFilterOption = branchFilterOptionProvider(loggedInUserInfo);
+  const result = await Customer.find(branchFilterOption).populate("branch");
   return result;
 };
 

@@ -6,6 +6,8 @@ import { IItems, TOrder, TOrderForCacheServer } from "./order.interface";
 import { IMenuItemConsumption } from "../rawMaterialConsumption/rawMaterialConsumption.interface";
 import { TTable } from "../table/table.interface";
 import { TWaiter } from "../waiter/waiter.interface";
+import mongoose from "mongoose";
+import { ENUM_ORDER_STATUS } from "../../enums/EnumOrderStatus";
 
 export const fetchOrderIfExists = async (id: string) => {
   const order = await Order.findById(id);
@@ -116,3 +118,12 @@ export const updateKitchenCache = async (
 //   if (order && decrementItem.length) {
 //   }
 // };
+
+export const isTableOccupied = async (tableId: string, branch: string) => {
+  const order = await Order.findOne({
+    tableName: new mongoose.Types.ObjectId(tableId),
+    branch: new mongoose.Types.ObjectId(branch),
+    status: ENUM_ORDER_STATUS.NOT_POSTED,
+  });
+  return !!order;
+};

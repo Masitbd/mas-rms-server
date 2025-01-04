@@ -13,7 +13,7 @@ import { userFinderAggregationBuilder } from "./user.helper";
 import { IOptions, paginationHelpers } from "../../helpers/paginationHelper";
 import { JwtPayload } from "jsonwebtoken";
 import { ENUM_USER } from "../../enums/EnumUser";
-
+import bcrypt from "bcrypt";
 const createUser = async (
   profile: IProfile,
   user: IUser,
@@ -30,9 +30,11 @@ const createUser = async (
       );
     }
 
+    console.log("isUser", user);
     if (user?.role !== ENUM_USER.USER && !user?.branch) {
       user.branch = loggedInUserInfo?.branch;
     }
+    console.log("isUser 2", user);
   }
 
   // check for branch
@@ -163,11 +165,22 @@ const getALluser = async (
   };
 };
 
-const patchUserProfile = async (uuid: string, data: Partial<IProfile>) => {
-  console.log(data);
-  const result = await Profile.findOneAndUpdate({ uuid: uuid }, data, {
+const patchUserProfile = async (
+  uuid: string,
+  data: Partial<IProfile & { branch: string }>
+) => {
+  const { branch, ...rest } = data;
+  if (branch) {
+    await User.findOneAndUpdate({ uuid: uuid }, { branch: branch });
+  }
+
+  if (rest?.email) {
+    await User.findOneAndUpdate({ uuid: uuid }, { email: rest?.email });
+  }
+  const result = await Profile.findOneAndUpdate({ uuid: uuid }, rest, {
     new: true,
   });
+
   return result;
 };
 
@@ -202,10 +215,36 @@ const deleteUser = async (uuid: string) => {
     await session.endSession();
   }
 };
+
+const changePasswordByAdmin = async (
+  id: string,
+  data: { password: string }
+) => {
+  const doesUserExists = await User.findOne({ uuid: id });
+  if (!doesUserExists) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const result = await User.findOneAndUpdate(
+    { uuid: id },
+    {
+      password: await bcrypt.hash(
+        data.password,
+        Number(config.bycrypt_salt_rounds)
+      ),
+    }
+  );
+
+  if (!result) {
+    throw new ApiError(400, "Failed to update password");
+  }
+  return;
+};
 export const UserService = {
   createUser,
   getSIngleUser,
   getALluser,
   patchUserProfile,
   deleteUser,
+  changePasswordByAdmin,
 };
