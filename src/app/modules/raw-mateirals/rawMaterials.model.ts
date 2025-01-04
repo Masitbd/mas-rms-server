@@ -5,7 +5,7 @@ const RawMaterialSchema = new Schema<IRawMaterials>(
   {
     id: { type: String, required: true, unique: true }, // Unique and required field
     baseUnit: { type: String, required: true },
-    materialName: { type: String, required: true },
+    materialName: { type: String, required: true, unique: true },
     superUnit: { type: String, required: true },
     rate: { type: Number, default: true }, // Optional field with a default value
     conversion: { type: Number, required: true },

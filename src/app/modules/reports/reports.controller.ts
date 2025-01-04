@@ -155,6 +155,17 @@ const getWaiterWiseSalesStatement = catchAsync(
     });
   }
 );
+const getDashboardStatisticsData = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await reportServices.getDashboardStatisticsDataFromDB();
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: "Dashboard data retrived successfully",
+      data: result,
+    });
+  }
+);
 
 export const reportControllers = {
   getDailyStatement,
@@ -168,4 +179,5 @@ export const reportControllers = {
   getSalesDueStatement,
   getWaiterWiseSales,
   getWaiterWiseSalesStatement,
+  getDashboardStatisticsData,
 };

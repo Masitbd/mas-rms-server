@@ -43,5 +43,10 @@ routes.get(
   auth(),
   reportControllers.getWaiterWiseSalesStatement
 );
+routes.get(
+  "/dashboard-statistics",
+  auth(),
+  reportControllers.getDashboardStatisticsData
+);
 
 export const reportRoutes = routes;
