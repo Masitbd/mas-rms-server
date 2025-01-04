@@ -54,6 +54,8 @@ const MenuItemConsumptionSchema = new Schema<IMenuItemConsumption>(
     itemName: {
       type: String,
       required: true,
+      unique: true,
+      index: true,
     },
     itemCode: {
       type: String,
