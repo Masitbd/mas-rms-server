@@ -18,6 +18,6 @@ export interface IMenuItemConsumption {
   consumptions: IItemConsumption[];
   discount?: number;
   waiterTip?: number;
-  branch: Types.ObjectId;
+  branch: Types.ObjectId[];
   images: Types.ObjectId;
 }

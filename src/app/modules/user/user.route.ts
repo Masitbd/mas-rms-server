@@ -22,6 +22,12 @@ router.get(
   UserController.getAllUser
 );
 router.patch("/profile/:uuid", UserController.updateUserProfile);
+
+router.patch(
+  "/change-password-admin/:id",
+  auth(ENUM_USER.SUPER_ADMIN, ENUM_USER.ADMIN),
+  UserController.changePasswordByAdmin
+);
 router.get("/:uuid", UserController.getUserByUUid);
 router.delete("/:uuid", UserController.deleteUser);
 export const UserRoutes = router;

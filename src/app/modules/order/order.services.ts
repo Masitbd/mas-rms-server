@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Query, Types, UpdateOneModel } from "mongoose";
+import mongoose, { Query, Types, UpdateOneModel } from "mongoose";
 import { cacheServer } from "../../../app";
 import { generateOrderId } from "../../../utils/generateUniqueId";
 import QueryBuilder from "../../builder/QueryBuilder";
@@ -39,109 +39,95 @@ import { ENUM_USER } from "../../enums/EnumUser";
 import { ENUM_ORDER_STATUS } from "../../enums/EnumOrderStatus";
 
 const createOrderIntoDB = async (payload: TOrder, loggedInuser: JwtPayload) => {
-  if (!loggedInuser?.branch) {
-    // add branch id to order
-    throw new AppError(
-      StatusCodes.BAD_REQUEST,
-      "You are not permitted to create order"
-    );
-  }
-  payload.branch = loggedInuser?.branch;
-
-  // Checking if table is occupied
-  if (payload?.tableName) {
-    const isOccupied = await isTableOccupied(
-      payload?.tableName as unknown as string,
-      loggedInuser?.branch
-    );
-    if (isOccupied) {
-      throw new AppError(StatusCodes.CONFLICT, "Table is already occupied");
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    if (!loggedInuser?.branch) {
+      // add branch id to order
+      throw new AppError(
+        StatusCodes.BAD_REQUEST,
+        "You are not permitted to create order"
+      );
     }
-  }
-  const orderValidatorInstance = new orderDataValidator(payload);
-  const orderData = await orderValidatorInstance.getPostableData();
+    payload.branch = loggedInuser?.branch;
 
-  let result;
-  if (orderData?.guestType == "registered") {
-    result = await OrderForRegisteredCustomer.create(orderData);
-  } else {
-    result = await OrderForUnregistered.create(orderData);
-  }
-  result = result = await result.populate([
-    { path: "customer" },
-    { path: "items.item" },
-    { path: "tableName" },
-    { path: "waiter" },
-    {
-      path: "branch",
-    },
-  ]);
+    // Checking if table is occupied
+    if (payload?.tableName) {
+      const isOccupied = await isTableOccupied(
+        payload?.tableName as unknown as string,
+        loggedInuser?.branch
+      );
+      if (isOccupied) {
+        throw new AppError(StatusCodes.CONFLICT, "Table is already occupied");
+      }
+    }
+    const orderValidatorInstance = new orderDataValidator(payload);
+    const orderData = await orderValidatorInstance.getPostableData();
 
-  if (result?._id) {
-    const billNo = await result.get("billNo");
-    const tableName = await result.get("tableName");
-    const waiter = await result.get("waiter");
-    // 1. post active table
-
-    // if (tableName) {
-    //   let activeTableList: string[] = [];
-    //   if (cacheServer.has("activeTableList")) {
-    //     activeTableList = cacheServer.get("activeTableList") as string[];
-
-    //     if (Array.isArray(activeTableList) && tableName) {
-    //       activeTableList.push(tableName?._id?.toString());
-    //     }
-    //   } else if (tableName) {
-    //     activeTableList = [tableName?._id?.toString()];
-    //   }
-    //   cacheServer.set("activeTableList", activeTableList);
-
-    //   const tableData: IActiveTable = {
-    //     billNo: billNo,
-    //     table: tableName.toObject(),
-    //     waiter: waiter ? waiter.toObject() : "",
-    //     orderId: result?._id.toString(),
-    //   };
-
-    //   cacheServer.set(tableName?._id?.toString(), tableData, 0);
-    // }
-    // 2. for kitchen order
-    const kitchenOrderNo = billNo + "001";
-    const items = await result?.get("items");
-    const currentKitchenOrder = cacheServer.get("kitchenOrderList") as string[];
-    const kitchenOrderList: string[] = [];
-    if (currentKitchenOrder) {
-      kitchenOrderList.push(...currentKitchenOrder, kitchenOrderNo);
+    let result;
+    if (orderData?.guestType == "registered") {
+      result = await OrderForRegisteredCustomer.create(orderData);
     } else {
-      kitchenOrderList.push(kitchenOrderNo);
+      result = await OrderForUnregistered.create(orderData);
     }
-    cacheServer.set("kitchenOrderList", kitchenOrderList);
-    const kitchenOrderData = {
-      items: items
-        ?.toObject()
-        .map((item: IItems & { item: IMenuItemConsumption }) => ({
-          itemCode: item?.item?.itemCode,
-          itemName: item?.item?.itemName,
-          qty: item?.qty,
-          rate: item?.rate,
-        })),
-      billNo: billNo,
-      kitchenOrderNo: kitchenOrderNo,
-      status: "active",
-      remark: orderData?.remark,
-      tableName: tableName?.toObject()?.name,
-      waiterName: waiter?.toObject()?.name,
-    };
-    cacheServer.set(kitchenOrderNo, kitchenOrderData, 0);
+    result = result = await result.populate([
+      { path: "customer" },
+      { path: "items.item" },
+      { path: "tableName" },
+      { path: "waiter" },
+      {
+        path: "branch",
+      },
+    ]);
 
-    // 3. for cache order
-    const cacheOrderData = {
-      ...result.toObject(),
-      kitchenOrders: [kitchenOrderNo],
-    };
-    cacheServer.set(result._id.toString(), cacheOrderData, 0);
+    if (result?._id) {
+      const billNo = await result.get("billNo");
+      const tableName = await result.get("tableName");
+      const waiter = await result.get("waiter");
+
+      // 2. for kitchen order
+      const kitchenOrderNo = billNo + "001";
+      const items = await result?.get("items");
+      const currentKitchenOrder = cacheServer.get(
+        "kitchenOrderList"
+      ) as string[];
+      const kitchenOrderList: string[] = [];
+      if (currentKitchenOrder) {
+        kitchenOrderList.push(...currentKitchenOrder, kitchenOrderNo);
+      } else {
+        kitchenOrderList.push(kitchenOrderNo);
+      }
+      cacheServer.set("kitchenOrderList", kitchenOrderList);
+      const kitchenOrderData = {
+        items: items
+          ?.toObject()
+          .map((item: IItems & { item: IMenuItemConsumption }) => ({
+            itemCode: item?.item?.itemCode,
+            itemName: item?.item?.itemName,
+            qty: item?.qty,
+            rate: item?.rate,
+          })),
+        billNo: billNo,
+        kitchenOrderNo: kitchenOrderNo,
+        status: "active",
+        remark: orderData?.remark,
+        tableName: tableName?.toObject()?.name,
+        waiterName: waiter?.toObject()?.name,
+      };
+      cacheServer.set(kitchenOrderNo, kitchenOrderData, 0);
+
+      // 3. for cache order
+      const cacheOrderData = {
+        ...result.toObject(),
+        kitchenOrders: [kitchenOrderNo],
+      };
+      cacheServer.set(result._id.toString(), cacheOrderData, 0);
+    }
+    return result;
+  } catch (error) {
+    await session.abortTransaction();
+    throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, error as string);
   }
-  return result;
 };
 
 //
@@ -231,6 +217,7 @@ const getKitchenOrderListForSingleBill = async (id: string) => {
 const updateOrder = async (id: string, order: TOrder) => {
   // 1. Data Source and data validator
   const doesOrderExist = await fetchOrderIfExists(id);
+  order.billNo = doesOrderExist?.billNo;
   const orderValidator = new orderDataValidator(order);
   const postableData = await orderValidator.getPostableData();
   const { diffValues: diffItems, decrementDiffValues } =

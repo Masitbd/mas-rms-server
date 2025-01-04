@@ -32,7 +32,7 @@ class MenuItemConsumptionService {
         loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
         loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
       ) {
-        menuItemData.branch = loggedInUserInfo?.branch;
+        menuItemData.branch = [loggedInUserInfo?.branch];
       }
       const newId = await generateUniqueId<IMenuItemConsumption>(
         MenuItemConsumption,
@@ -109,7 +109,9 @@ class MenuItemConsumptionService {
         loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
         loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
       ) {
-        query.$and = [branchFilterOptionProvider(loggedInUserInfo)];
+        query.$and = [
+          branchFilterOptionProvider(loggedInUserInfo, "consumption"),
+        ];
       }
 
       // Add category filter
