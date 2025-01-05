@@ -88,16 +88,7 @@ const createOrderIntoDB = async (payload: TOrder, loggedInuser: JwtPayload) => {
       // 2. for kitchen order
       const kitchenOrderNo = billNo + "001";
       const items = await result?.get("items");
-      const currentKitchenOrder = cacheServer.get(
-        "kitchenOrderList"
-      ) as string[];
-      const kitchenOrderList: string[] = [];
-      if (currentKitchenOrder) {
-        kitchenOrderList.push(...currentKitchenOrder, kitchenOrderNo);
-      } else {
-        kitchenOrderList.push(kitchenOrderNo);
-      }
-      cacheServer.set("kitchenOrderList", kitchenOrderList);
+
       const kitchenOrderData = {
         items: items
           ?.toObject()
@@ -113,16 +104,12 @@ const createOrderIntoDB = async (payload: TOrder, loggedInuser: JwtPayload) => {
         remark: orderData?.remark,
         tableName: tableName?.toObject()?.name,
         waiterName: waiter?.toObject()?.name,
+        orderId: result._id,
       };
-      cacheServer.set(kitchenOrderNo, kitchenOrderData, 0);
 
-      // 3. for cache order
-      const cacheOrderData = {
-        ...result.toObject(),
-        kitchenOrders: [kitchenOrderNo],
-      };
-      cacheServer.set(result._id.toString(), cacheOrderData, 0);
+      (await KitchenOrder.create(kitchenOrderData)).$session(session);
     }
+    await session.commitTransaction();
     return result;
   } catch (error) {
     await session.abortTransaction();
@@ -202,15 +189,7 @@ const getActiveTableListDetails = async (loggedInUser: JwtPayload) => {
 };
 
 const getKitchenOrderListForSingleBill = async (id: string) => {
-  let result: any;
-  if (cacheServer.has(id)) {
-    const orderData: TOrderForCacheServer = cacheServer.get(
-      id
-    ) as TOrderForCacheServer;
-
-    result = cacheServer.mget(orderData.kitchenOrders);
-  }
-
+  const result = await KitchenOrder.find({ orderId: new Types.ObjectId(id) });
   return result;
 };
 
@@ -226,7 +205,7 @@ const updateOrder = async (id: string, order: TOrder) => {
     );
 
   // 2. handling kitchen OrderServices
-  const { kitchenOrderId, kitchenOrders } = handleKitchenOrders(
+  const { kitchenOrderId } = await handleKitchenOrders(
     id,
     doesOrderExist,
     diffItems
@@ -235,12 +214,6 @@ const updateOrder = async (id: string, order: TOrder) => {
   // 3. Updating to db and cache server
 
   const result = await updateOrderInDB(id, postableData as unknown as TOrder);
-  const updateCacheData = updateCache(
-    id,
-    result?.toObject() as TOrder,
-    kitchenOrders
-  );
-
   await updateKitchenCache(
     kitchenOrderId as string,
     result?.toObject() as IPopulatedOrderData,
@@ -258,55 +231,6 @@ const changeStatus = async (id: string, data: { status: ORDER_STATUS }) => {
       { status: data.status },
       { new: true }
     );
-    if (updatedData?.status == data.status && cacheServer.has(id)) {
-      const cachedData: TOrder & { kitchenOrders: string[] } = cacheServer.take(
-        id
-      ) as TOrder & { kitchenOrders: string[] };
-      const kitchenOrderList: { [key: string]: IKitchenOrderData } =
-        cacheServer.mget(cachedData?.kitchenOrders);
-      if (kitchenOrderList) {
-        const formatedData = Object.keys(kitchenOrderList).map((key) => {
-          cacheServer.del(key);
-          const data = {
-            ...kitchenOrderList[key],
-            status: "inactive",
-          };
-          return data;
-        });
-        await KitchenOrder.insertMany(formatedData);
-      }
-
-      // // handling table data
-      // if (
-      //   updatedData?.tableName &&
-      //   cacheServer.has(updatedData?.tableName.toString())
-      // ) {
-      //   cacheServer.del(updatedData.tableName.toString());
-      //   const activeTableList: string[] = cacheServer.get(
-      //     "activeTableList"
-      //   ) as string[];
-      //   const index = activeTableList.indexOf(updatedData.tableName.toString());
-      //   if (index > -1) {
-      //     activeTableList.splice(index, 1);
-      //     cacheServer.set("activeTableList", activeTableList);
-      //   }
-      // }
-
-      // handling kitchenOrderList
-
-      const listFormCache: string[] = cacheServer.get(
-        "kitchenOrderList"
-      ) as string[];
-      if (listFormCache?.length) {
-        cachedData.kitchenOrders.map((item: string) => {
-          const index = listFormCache.indexOf(item);
-          if (index > -1) {
-            listFormCache.splice(index, 1);
-          }
-        });
-      }
-      cacheServer.set("kitchenOrderList", listFormCache);
-    }
   }
 
   return await updatedData?.populate([
