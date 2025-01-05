@@ -19,6 +19,7 @@ export type IUnregisteredCustomerInfo = {
 };
 
 export type TOrder = {
+  _id: string;
   billNo: string;
   date: Date;
   tableName: TTable | Types.ObjectId;
