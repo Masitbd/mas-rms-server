@@ -48,7 +48,7 @@ const loginUser = async (payload: ILoginUser): Promise<ILoginUserResponse> => {
     email: userMail,
     id,
     branch,
-  } = isUserExist as IUserResponse;
+  } = isUserExist as unknown as IUserResponse;
 
   const profile = await Profile.findOne({ uuid: isUserExist?.uuid });
   if (!profile) {
@@ -114,6 +114,8 @@ const refreshToken = async (token: string): Promise<IRefreshTokenResponse> => {
     {
       uuid: isUserExist.uuid,
       role: isUserExist.role,
+      email,
+      branch: isUserExist?.branch,
     },
     config.jwt.secret as Secret,
     config.jwt.expires_in as string
