@@ -1,4 +1,4 @@
-import { Model } from "mongoose";
+import { Model, Types } from "mongoose";
 import { Branch } from "../app/modules/branch/branch.model";
 import { Customer } from "../app/modules/customer/customer.model";
 import { ItemCategroy } from "../app/modules/itemCategory/itemCategory.model";
@@ -159,31 +159,38 @@ export const generateWaiterId = async () => {
 
 // ! generate unique order id
 
-const findLastOrderId = async () => {
-  const lastItem = await Order.findOne({})
+const findLastOrderId = async (branch: string) => {
+  const lastItem = await Order.find({ branch: new Types.ObjectId(branch) })
     .sort({
       createdAt: -1,
     })
+    .limit(1)
     .lean();
 
-  return lastItem?.billNo ? lastItem.billNo : undefined;
+  return lastItem[0]?.billNo ? lastItem[0]?.billNo : undefined;
 };
 
-export const generateOrderId = async () => {
+export const generateOrderId = async (branchId: string) => {
   const now = new Date();
-  const year = now.getFullYear().toString().slice(-2); // Last 2 digits of the year
+  const year = now.getFullYear().toString().slice(-2)?.toString(); // Last 2 digits of the year
   const month = (now.getMonth() + 1).toString().padStart(2, "0");
+  const yearAndMonth = year + month;
+  const branch = await Branch.findById(branchId).lean();
+  const branchCode = branch?.bid;
 
   let currentId = "0";
-  const lastOrderId = await findLastOrderId();
+  const lastOrderId = await findLastOrderId(branchId);
 
   if (lastOrderId) {
-    currentId = lastOrderId.slice(5);
+    if (lastOrderId.substring(1, 5) !== yearAndMonth) {
+      currentId = "0";
+    }
+    currentId = lastOrderId.substring(7);
   }
 
   let incrementId = (Number(currentId) + 1).toString().padStart(3, "0");
 
-  incrementId = `R${year}${month}${incrementId}`;
+  incrementId = `R${year}${month}${branchCode}${incrementId}`;
 
   return incrementId;
 };

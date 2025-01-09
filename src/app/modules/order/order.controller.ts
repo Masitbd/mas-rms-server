@@ -113,6 +113,30 @@ const getSIngleOrderWithPopulate = catchAsync(
     });
   }
 );
+
+const dueCollection = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await OrderServices.dueCollection(id, req.body, req.user);
+  sendResponse(res, {
+    statusCode: 200,
+    message: "Dew Amount deducted Successfully",
+    success: true,
+    data: result,
+  });
+});
+
+const getDueCollectionHistory = catchAsync(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const result = await OrderServices.getDueCollectionHistory(id);
+    sendResponse(res, {
+      statusCode: 200,
+      message: "Dew Collection History Retrieved Successfully",
+      success: true,
+      data: result,
+    });
+  }
+);
 export const OrderControllers = {
   createOrder,
   getAllOrder,
@@ -123,4 +147,6 @@ export const OrderControllers = {
   updateOrder,
   orderStatusUpdater,
   getSIngleOrderWithPopulate,
+  dueCollection,
+  getDueCollectionHistory,
 };

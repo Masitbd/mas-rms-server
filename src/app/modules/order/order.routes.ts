@@ -58,4 +58,28 @@ routes.patch("/status/:id", OrderControllers.orderStatusUpdater);
 
 routes.get("/:id", OrderControllers.getSIngleOrderWithPopulate);
 
+routes.patch(
+  "/due-collection/:id",
+  auth(
+    ENUM_USER.MANAGER,
+    ENUM_USER.SUPER_ADMIN,
+    ENUM_USER.ADMIN,
+    ENUM_USER.CASHIER,
+    ENUM_USER.ACCOUNTANT
+  ),
+  OrderControllers.dueCollection
+);
+
+routes.get(
+  "/due-collection/:id",
+  auth(
+    ENUM_USER.MANAGER,
+    ENUM_USER.SUPER_ADMIN,
+    ENUM_USER.ADMIN,
+    ENUM_USER.CASHIER,
+    ENUM_USER.ACCOUNTANT
+  ),
+  OrderControllers.getDueCollectionHistory
+);
+
 export const OrderRoutes = routes;
