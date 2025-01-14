@@ -4,7 +4,7 @@ import { TBranch } from "./branch.interface";
 const branchSchema = new Schema<TBranch>(
   {
     bid: { type: String, required: true, unique: true },
-    name: { type: String, required: true },
+    name: { type: String, required: true, unique: true },
     phone: { type: String, required: true },
     vatNo: { type: String },
     email: { type: String },

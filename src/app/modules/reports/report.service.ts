@@ -173,7 +173,11 @@ const getDailySalesStatementSummeryFromDB = async (
 
   const branch = user?.branch || query.branch;
 
-  const branchInfo = await Branch.findById(branch);
+  let branchInfo = null;
+
+  if (branch) {
+    branchInfo = await Branch.findById(branch);
+  }
 
   const queryParams: PipelineStage[] = [
     {
@@ -182,7 +186,7 @@ const getDailySalesStatementSummeryFromDB = async (
           $gte: startDate,
           $lte: endDate,
         },
-        branch: new mongoose.Types.ObjectId(branch),
+        ...(branch ? { branch: new mongoose.Types.ObjectId(branch) } : {}),
       },
     },
     {
@@ -201,59 +205,88 @@ const getDailySalesStatementSummeryFromDB = async (
     },
     {
       $facet: {
-        // Group by date for daily summaries
-        dateWiseSummary: [
-          {
-            $group: {
-              _id: {
-                date: {
-                  $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+        ...(user.role === "super-admin" && !branch
+          ? {
+              // Group by branch for super-admin without branch
+              dateWiseSummary: [
+                {
+                  $group: {
+                    _id: "$branch",
+                    branchName: { $first: "$branchDetails.name" },
+                    totalBill: { $sum: "$totalBill" },
+                    totalVat: { $sum: "$totalVat" },
+                    totalGuest: { $sum: "$guest" },
+                    totalDiscount: { $sum: "$totalDiscount" },
+                    totalScharge: { $sum: "$tSChargse" },
+                    totalPayable: { $sum: "$netPayable" },
+                    totalDue: { $sum: "$due" },
+                    totalPaid: { $sum: "$paid" },
+                  },
                 },
-              },
-              totalBill: { $sum: "$totalBill" },
-              totalVat: { $sum: "$totalVat" },
-              totalGuest: { $sum: "$guest" },
-              totalDiscount: { $sum: "$totalDiscount" },
-              totalScharge: { $sum: "$tSChargse" },
-              totalPayable: { $sum: "$netPayable" },
-              totalDue: { $sum: "$due" },
-              totalPaid: { $sum: "$paid" },
-            },
-          },
-          { $sort: { "_id.date": 1 } }, // Sort by date in ascending order
-        ],
-        // Group by payment mode for overall summary
-        paymentModeSummary: [
-          {
-            $group: {
-              _id: "$paymentMode",
-              total: { $sum: "$totalBill" },
-            },
-          },
-        ],
-
-        total: [
-          {
-            $group: {
-              _id: null,
-              grandTotalBill: { $sum: "$totalBill" },
-              grandTotalVat: { $sum: "$totalVat" },
-              grandTotalGuest: { $sum: "$guest" },
-              grandTotalDiscount: { $sum: "$totalDiscount" },
-              grandTotalScharge: { $sum: "$tSChargse" },
-              grandTotalPayable: { $sum: "$netPayable" },
-              grandTotalDue: { $sum: "$due" },
-              grandTotalPaid: { $sum: "$paid" },
-            },
-          },
-        ],
+                { $sort: { branchName: 1 } }, // Sort branches by name
+              ],
+            }
+          : {
+              dateWiseSummary: [
+                {
+                  $group: {
+                    _id: {
+                      date: {
+                        $dateToString: {
+                          format: "%Y-%m-%d",
+                          date: "$createdAt",
+                        },
+                      },
+                    },
+                    totalBill: { $sum: "$totalBill" },
+                    totalVat: { $sum: "$totalVat" },
+                    totalGuest: { $sum: "$guest" },
+                    totalDiscount: { $sum: "$totalDiscount" },
+                    totalScharge: { $sum: "$tSChargse" },
+                    totalPayable: { $sum: "$netPayable" },
+                    totalDue: { $sum: "$due" },
+                    totalPaid: { $sum: "$paid" },
+                  },
+                },
+                { $sort: { "_id.date": 1 } },
+              ],
+              paymentModeSummary: [
+                {
+                  $group: {
+                    _id: "$paymentMode",
+                    total: { $sum: "$totalBill" },
+                  },
+                },
+              ],
+              total: [
+                {
+                  $group: {
+                    _id: null,
+                    grandTotalBill: { $sum: "$totalBill" },
+                    grandTotalVat: { $sum: "$totalVat" },
+                    grandTotalGuest: { $sum: "$guest" },
+                    grandTotalDiscount: { $sum: "$totalDiscount" },
+                    grandTotalScharge: { $sum: "$tSChargse" },
+                    grandTotalPayable: { $sum: "$netPayable" },
+                    grandTotalDue: { $sum: "$due" },
+                    grandTotalPaid: { $sum: "$paid" },
+                  },
+                },
+              ],
+            }),
       },
     },
     {
       $project: {
-        dateWiseSummary: 1,
-        paymentModeSummary: 1,
-        total: { $arrayElemAt: ["$total", 0] },
+        ...(user.role === "super-admin" && !branch
+          ? {
+              dateWiseSummary: 1,
+            }
+          : {
+              dateWiseSummary: 1,
+              paymentModeSummary: 1,
+              total: { $arrayElemAt: ["$total", 0] },
+            }),
         branchDetails: 1,
       },
     },
@@ -275,7 +308,7 @@ const getItemWiseSalesSatetementFromDB = async (
   endDate.setUTCHours(23, 59, 59, 999);
 
   const branch = user?.branch || query.branch;
-  const branchInfo = await Branch.findById(branch);
+  let branchInfo = branch ? await Branch.findById(branch) : null;
 
   const pipelineAggregate: PipelineStage[] = [
     {
@@ -284,7 +317,7 @@ const getItemWiseSalesSatetementFromDB = async (
           $gte: startDate,
           $lte: endDate,
         },
-        branch: new mongoose.Types.ObjectId(branch),
+        ...(branch && { branch: new mongoose.Types.ObjectId(branch) }),
       },
     },
     {
@@ -315,7 +348,6 @@ const getItemWiseSalesSatetementFromDB = async (
     {
       $unwind: { path: "$itemGroupDetails", preserveNullAndEmptyArrays: true },
     },
-
     {
       $lookup: {
         from: "menugroups",
@@ -327,35 +359,75 @@ const getItemWiseSalesSatetementFromDB = async (
     {
       $unwind: { path: "$menuGroupDetails", preserveNullAndEmptyArrays: true },
     },
+    ...(user?.role === "super-admin" && !branch
+      ? [
+          {
+            $group: {
+              _id: "$branch", // Group by branch
+              branchData: { $push: "$$ROOT" }, // Preserve all documents under each branch
+            },
+          },
+          {
+            $lookup: {
+              from: "branches",
+              localField: "_id",
+              foreignField: "_id",
+              as: "branchDetails",
+            },
+          },
+          {
+            $unwind: {
+              path: "$branchDetails",
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $unwind: {
+              path: "$branchData", // Unwind original documents
+            },
+          },
+          {
+            $replaceRoot: {
+              newRoot: {
+                $mergeObjects: [
+                  "$branchData",
+                  { branchDetails: "$branchDetails" },
+                ],
+              },
+            },
+          },
+        ]
+      : []),
     {
       $group: {
         _id: {
           menuGroup: "$menuGroupDetails.name",
           itemGroup: "$itemGroupDetails.name",
+          branch: "$branch", // Preserve branch in the grouping
+          branchName: "$branchDetails.name", // Include branch name for super-admins
         },
         items: {
           $push: {
             code: "$itemDetails.itemCode",
             name: "$itemDetails.itemName",
             rate: "$itemDetails.rate",
-
             quantity: { $sum: "$items.qty" },
             totalBill: "$totalBill",
           },
         },
-
         grandTotalQty: { $sum: "$items.qty" },
         granTotalBill: { $sum: "$totalBill" },
         grandTotalRate: { $sum: "$itemDetails.rate" },
       },
     },
-
     {
       $group: {
         _id: "$_id.menuGroup",
         itemGroups: {
           $push: {
             itemGroup: "$_id.itemGroup",
+            branch: "$_id.branch", // Carry branch information
+            branchName: "$_id.branchName", // Include branch name
             items: "$items",
             granTotalBill: { $sum: "$granTotalBill" },
             grandTotalQty: { $sum: "$grandTotalQty" },
@@ -364,18 +436,22 @@ const getItemWiseSalesSatetementFromDB = async (
         },
       },
     },
-
     {
       $project: {
         menuGroup: "$_id",
+        branchName: "$_id",
         itemGroups: 1,
-
         _id: 0,
       },
     },
   ];
 
   const result = await Order.aggregate(pipelineAggregate);
+
+  if (!branchInfo && branch) {
+    branchInfo = await Branch.findById(branch);
+  }
+
   return { branchInfo, result };
 };
 
@@ -384,17 +460,130 @@ const getMenuGroupWithItemsFromDB = async (
   user: any
 ) => {
   const branch = user?.branch || payload.branch;
-  const branchInfo = await Branch.findById(branch);
+  const branchInfo = branch ? await Branch.findById(branch) : null;
+
+  // const query = [
+  //   ...(branch
+  //     ? [
+  //         {
+  //           $match: {
+  //             branch: new mongoose.Types.ObjectId(branch),
+  //           },
+  //         },
+  //       ]
+  //     : []), // Skip $match if no branch is provided
+  //   {
+  //     $unwind: {
+  //       path: "$branch", // Unwind the branch array to handle each branch separately
+  //       preserveNullAndEmptyArrays: true,
+  //     },
+  //   },
+  //   {
+  //     $lookup: {
+  //       from: "itemcategroys", // Replace with your actual ItemCategory collection name
+  //       localField: "itemCategory",
+  //       foreignField: "_id",
+  //       as: "itemCategorysDetails",
+  //     },
+  //   },
+  //   {
+  //     $unwind: {
+  //       path: "$itemCategorysDetails",
+  //       preserveNullAndEmptyArrays: true,
+  //     },
+  //   },
+  //   {
+  //     $lookup: {
+  //       from: "menugroups",
+  //       localField: "itemCategorysDetails.menuGroup",
+  //       foreignField: "_id",
+  //       as: "menuGroupDetails",
+  //     },
+  //   },
+  //   {
+  //     $unwind: { path: "$menuGroupDetails", preserveNullAndEmptyArrays: true },
+  //   },
+  //   {
+  //     $group: {
+  //       _id: {
+  //         branch: "$branch", // Now grouping by the individual branch
+  //         menuGroup: "$menuGroupDetails.name",
+  //         itemGroup: "$itemCategorysDetails.name",
+  //       },
+  //       items: {
+  //         $push: {
+  //           name: "$itemName",
+  //           code: "$itemCode",
+  //           rate: "$rate",
+  //         },
+  //       },
+  //     },
+  //   },
+  //   {
+  //     $group: {
+  //       _id: {
+  //         branch: "$_id.branch", // Group by branch
+  //         menuGroup: "$_id.menuGroup",
+  //       },
+  //       itemGroups: {
+  //         $push: {
+  //           itemGroup: "$_id.itemGroup",
+  //           items: "$items",
+  //         },
+  //       },
+  //     },
+  //   },
+  //   {
+  //     $group: {
+  //       _id: "$_id.branch", // Group by branch again to consolidate menuGroups
+  //       menuGroups: {
+  //         $push: {
+  //           menuGroup: "$_id.menuGroup",
+  //           itemGroups: "$itemGroups",
+  //         },
+  //       },
+  //     },
+  //   },
+  //   {
+  //     $lookup: {
+  //       from: "branches",
+  //       localField: "_id",
+  //       foreignField: "_id",
+  //       as: "branchDetails",
+  //     },
+  //   },
+  //   {
+  //     $unwind: { path: "$branchDetails", preserveNullAndEmptyArrays: true },
+  //   },
+  //   {
+  //     $project: {
+  //       branch: "$branchDetails.name", // Include branch name
+  //       branchId: "$_id", // Include branchId
+  //       menuGroups: 1,
+  //       _id: 0,
+  //     },
+  //   },
+  // ];
+
   const query = [
     {
-      $match: {
-        branch: new mongoose.Types.ObjectId(branch),
+      $unwind: {
+        path: "$branch", // Unwind the branch array to handle each branch separately
+        preserveNullAndEmptyArrays: true, // Ensure no data is dropped if branch is null/empty
       },
     },
-
+    ...(branch
+      ? [
+          {
+            $match: {
+              branch: new mongoose.Types.ObjectId(branch), // Match the branch after unwinding
+            },
+          },
+        ]
+      : []), // Apply the branch filter only if a branch is provided
     {
       $lookup: {
-        from: "itemcategroys", // Replace with your actual MenuGroup collection name
+        from: "itemcategroys", // Replace with your actual ItemCategory collection name
         localField: "itemCategory",
         foreignField: "_id",
         as: "itemCategorysDetails",
@@ -415,12 +604,15 @@ const getMenuGroupWithItemsFromDB = async (
       },
     },
     {
-      $unwind: { path: "$menuGroupDetails", preserveNullAndEmptyArrays: true },
+      $unwind: {
+        path: "$menuGroupDetails",
+        preserveNullAndEmptyArrays: true,
+      },
     },
-
     {
       $group: {
         _id: {
+          branch: "$branch", // Grouping by individual branch after filtering
           menuGroup: "$menuGroupDetails.name",
           itemGroup: "$itemCategorysDetails.name",
         },
@@ -428,16 +620,17 @@ const getMenuGroupWithItemsFromDB = async (
           $push: {
             name: "$itemName",
             code: "$itemCode",
-            cookingTime: "$cookingTime",
             rate: "$rate",
           },
         },
       },
     },
-
     {
       $group: {
-        _id: "$_id.menuGroup",
+        _id: {
+          branch: "$_id.branch", // Group by branch
+          menuGroup: "$_id.menuGroup",
+        },
         itemGroups: {
           $push: {
             itemGroup: "$_id.itemGroup",
@@ -446,24 +639,43 @@ const getMenuGroupWithItemsFromDB = async (
         },
       },
     },
-
+    {
+      $group: {
+        _id: "$_id.branch", // Group by branch again to consolidate menuGroups
+        menuGroups: {
+          $push: {
+            menuGroup: "$_id.menuGroup",
+            itemGroups: "$itemGroups",
+          },
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "branches", // Join with the branches collection to get branch details
+        localField: "_id",
+        foreignField: "_id",
+        as: "branchDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$branchDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
     {
       $project: {
-        menuGroup: "$_id",
-        itemGroups: 1,
-
+        branch: "$branchDetails.name", // Include branch name
+        branchId: "$_id", // Include branchId
+        menuGroups: 1,
         _id: 0,
       },
     },
   ];
 
-  try {
-    const result = await MenuItemConsumption.aggregate(query);
-    return { branchInfo, result };
-  } catch (error) {
-    console.error("Error fetching menu group with items:", error);
-    throw error;
-  }
+  const result = await MenuItemConsumption.aggregate(query);
+  return { branchInfo, result };
 };
 
 // menu item and coinsumptionconst
@@ -472,11 +684,44 @@ const getMenuItemsAndConsumptionFromDB = async (
   user: any
 ) => {
   const branch = user?.branch || payload.branch;
-  const branchInfo = await Branch.findById(branch);
+  const branchInfo = branch ? await Branch.findById(branch) : null;
   const query = [
+    ...(branch
+      ? [
+          {
+            $match: {
+              branch: new mongoose.Types.ObjectId(branch), // Match the branch after unwinding
+            },
+          },
+        ]
+      : []),
     {
-      $match: {
-        branch: new mongoose.Types.ObjectId(branch),
+      $unwind: {
+        path: "$branch",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    ...(branch
+      ? [
+          {
+            $match: {
+              branch: new mongoose.Types.ObjectId(branch),
+            },
+          },
+        ]
+      : []),
+    {
+      $lookup: {
+        from: "branches",
+        localField: "branch",
+        foreignField: "_id",
+        as: "branchDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$branchDetails",
+        preserveNullAndEmptyArrays: true,
       },
     },
     {
@@ -502,7 +747,10 @@ const getMenuItemsAndConsumptionFromDB = async (
       },
     },
     {
-      $unwind: { path: "$menuGroupDetails", preserveNullAndEmptyArrays: true },
+      $unwind: {
+        path: "$menuGroupDetails",
+        preserveNullAndEmptyArrays: true,
+      },
     },
     {
       $unwind: {
@@ -532,6 +780,7 @@ const getMenuItemsAndConsumptionFromDB = async (
           rate: "$rate",
           menuGroup: "$menuGroupDetails.name",
           itemGroup: "$itemCategorysDetails.name",
+          branch: "$branchDetails.name",
         },
         consumptions: {
           $push: {
@@ -543,10 +792,10 @@ const getMenuItemsAndConsumptionFromDB = async (
         },
       },
     },
-    //
     {
       $group: {
         _id: {
+          branch: "$_id.branch",
           menuGroup: "$_id.menuGroup",
           itemGroup: "$_id.itemGroup",
         },
@@ -569,6 +818,7 @@ const getMenuItemsAndConsumptionFromDB = async (
             itemGroup: "$_id.itemGroup",
             items: "$items",
             totalConsumptionCount: "$totalConsumptionCount",
+            branch: "$_id.branch",
           },
         },
         menuGroupTotalConsumption: { $sum: "$totalConsumptionCount" },
@@ -583,13 +833,9 @@ const getMenuItemsAndConsumptionFromDB = async (
       },
     },
   ];
-  try {
-    const result = await MenuItemConsumption.aggregate(query);
-    return { branchInfo, result };
-  } catch (error) {
-    console.error("Error fetching menu group with items:", error);
-    throw error;
-  }
+
+  const result = await MenuItemConsumption.aggregate(query);
+  return { branchInfo, result };
 };
 //
 const getMenuItemsAndCostingFromDB = async (
@@ -599,13 +845,42 @@ const getMenuItemsAndCostingFromDB = async (
   const branch = user?.branch || payload.branch;
   const branchInfo = await Branch.findById(branch);
   const query = [
-    {
-      $match: {
-        branch: {
-          $elemMatch: {
-            $eq: new mongoose.Types.ObjectId(branch),
+    ...(branch
+      ? [
+          {
+            $match: {
+              branch: new mongoose.Types.ObjectId(branch), // Match the branch after unwinding
+            },
           },
-        },
+        ]
+      : []),
+    {
+      $unwind: {
+        path: "$branch",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    ...(branch
+      ? [
+          {
+            $match: {
+              branch: new mongoose.Types.ObjectId(branch),
+            },
+          },
+        ]
+      : []),
+    {
+      $lookup: {
+        from: "branches",
+        localField: "branch",
+        foreignField: "_id",
+        as: "branchDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$branchDetails",
+        preserveNullAndEmptyArrays: true,
       },
     },
 
@@ -662,6 +937,7 @@ const getMenuItemsAndCostingFromDB = async (
           itemName: "$itemName",
           itemCode: "$itemCode",
           rate: "$rate",
+          branch: "$branchDetails.name",
         },
         consumptions: {
           $push: {
@@ -687,6 +963,7 @@ const getMenuItemsAndCostingFromDB = async (
     {
       $group: {
         _id: {
+          branch: "$_id.branch",
           menuGroup: "$_id.menuGroup",
           itemGroup: "$_id.itemGroup",
         },
@@ -712,6 +989,7 @@ const getMenuItemsAndCostingFromDB = async (
             items: "$items",
             totalCosting: "$totalCosting",
             totalConsumptionCount: "$totalConsumptionCount",
+            branch: "$_id.branch",
           },
         },
         menuGroupTotalConsumption: { $sum: "$totalConsumptionCount" },
@@ -751,14 +1029,15 @@ const getRawMaterialConsumptionSalesFromDB = async (
   endDate.setUTCHours(23, 59, 59, 999);
   const branch = user?.branch || query.branch;
   const branchInfo = await Branch.findById(branch);
-  const pipelineAggregate: PipelineStage[] = [
+
+  const pipelineAggregate = [
     {
       $match: {
         createdAt: {
           $gte: startDate,
           $lte: endDate,
         },
-        branch: new mongoose.Types.ObjectId(branch),
+        ...(branch ? { branch: new mongoose.Types.ObjectId(branch) } : {}),
       },
     },
     {
@@ -775,18 +1054,15 @@ const getRawMaterialConsumptionSalesFromDB = async (
         as: "itemDetails",
       },
     },
-    // eikahn theke ami order item ar data and consumption data pabo
     {
       $unwind: { path: "$itemDetails", preserveNullAndEmptyArrays: true },
     },
-
     {
       $unwind: {
         path: "$itemDetails.consumptions",
         preserveNullAndEmptyArrays: true,
       },
     },
-    // ekhon amake raw material theke unit price baseunit and name ante hobe
     {
       $lookup: {
         from: "rawmaterials",
@@ -801,14 +1077,18 @@ const getRawMaterialConsumptionSalesFromDB = async (
         preserveNullAndEmptyArrays: true,
       },
     },
-
     {
       $group: {
-        _id: "$rawMaterialsDetails.materialName",
+        _id: branch
+          ? "$rawMaterialsDetails.materialName"
+          : {
+              branch: "$branch",
+              materialName: "$rawMaterialsDetails.materialName",
+            },
         totalQty: {
           $sum: { $multiply: ["$itemDetails.consumptions.qty", "$items.qty"] },
-        }, // Sum quantities of raw materials
-        rate: { $first: "$rawMaterialsDetails.rate" }, // Assuming the rate is consistent
+        },
+        rate: { $first: "$rawMaterialsDetails.rate" },
         unit: { $first: "$rawMaterialsDetails.baseUnit" },
         totalPrice: {
           $sum: {
@@ -819,21 +1099,48 @@ const getRawMaterialConsumptionSalesFromDB = async (
             ],
           },
         },
+        branch: { $first: "$branch" },
       },
     },
-
+    {
+      $group: {
+        _id: branch ? null : "$_id.branch",
+        materials: {
+          $push: {
+            materialName: branch ? "$_id" : "$_id.materialName",
+            totalQty: "$totalQty",
+            rate: "$rate",
+            unit: "$unit",
+            totalPrice: "$totalPrice",
+          },
+        },
+        branch: { $first: "$branch" },
+      },
+    },
+    {
+      $lookup: {
+        from: "branches",
+        localField: "branch",
+        foreignField: "_id",
+        as: "branchDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$branchDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
     {
       $project: {
-        rawMaterialName: "$_id",
-        totalQty: 1,
-        rate: 1,
-        unit: 1,
-        totalPrice: 1,
-
-        _id: 0,
+        branch: "$branchDetails.name",
+        materials: 1,
+        totalQty: { $sum: "$rawMaterials.totalQty" },
+        totalPrice: { $sum: "$rawMaterials.totalPrice" },
       },
     },
   ];
+
   const result = await Order.aggregate(pipelineAggregate);
   return { branchInfo, result };
 };
@@ -858,7 +1165,7 @@ const getItemWiseRawMaterialConsumptionFromDB = async (
           $gte: startDate,
           $lte: endDate,
         },
-        branch: new mongoose.Types.ObjectId(branch),
+        ...(branch ? { branch: new mongoose.Types.ObjectId(branch) } : {}),
       },
     },
     {
@@ -898,18 +1205,17 @@ const getItemWiseRawMaterialConsumptionFromDB = async (
         preserveNullAndEmptyArrays: true,
       },
     },
-
     {
       $group: {
         _id: {
           itemName: "$itemDetails.itemName",
           itemCode: "$itemDetails.itemCode",
           itemRate: "$itemDetails.rate",
-
           rawMaterialName: "$rawMaterialsDetails.materialName",
-          rawMaterialId: "$rawMaterialsDetails.id",
+          rawMaterialId: "$rawMaterialsDetails._id",
           rate: "$rawMaterialsDetails.rate",
           unit: "$rawMaterialsDetails.baseUnit",
+          branch: "$branch", // Include branch here for grouping
         },
         totalQty: {
           $sum: {
@@ -927,7 +1233,6 @@ const getItemWiseRawMaterialConsumptionFromDB = async (
         },
       },
     },
-
     {
       $group: {
         _id: {
@@ -936,6 +1241,7 @@ const getItemWiseRawMaterialConsumptionFromDB = async (
           itemRate: "$_id.itemRate",
         },
         totalItemQty: { $sum: "$totalQty" },
+
         rawMaterialConsumptions: {
           $push: {
             rawMaterialName: "$_id.rawMaterialName",
@@ -946,23 +1252,56 @@ const getItemWiseRawMaterialConsumptionFromDB = async (
             totalPrice: "$totalPrice",
           },
         },
+        branch: { $first: "$_id.branch" }, // Keep branch if needed
       },
     },
-    // Calculate total amount for the item
     {
-      $project: {
-        itemName: "$_id.itemName",
-        itemCode: "$_id.itemCode",
-        itemRate: "$_id.itemRate",
-
-        totalItemQty: 1,
-        totalAmount: {
-          $sum: {
-            $multiply: ["$_id.itemRate", "$totalItemQty"],
+      $group: {
+        _id: branch ? null : "$branch", // If branch exists, group by branch; otherwise group by null
+        materials: {
+          $push: {
+            itemName: "$_id.itemName",
+            itemCode: "$_id.itemCode",
+            itemRate: "$_id.itemRate",
+            totalItemQty: "$totalItemQty",
+            totalAmount: {
+              $sum: {
+                $multiply: ["$_id.itemRate", "$totalItemQty"],
+              },
+            },
+            consumptions: "$rawMaterialConsumptions",
           },
         },
-        consumptions: "$rawMaterialConsumptions",
-        _id: 0,
+        branch: { $first: "$branch" }, // Keep branch if grouping by branch
+      },
+    },
+    {
+      $lookup: {
+        from: "branches",
+        localField: "branch",
+        foreignField: "_id",
+        as: "branchDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$branchDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        branch: branch ? "$branchDetails.name" : "All Branches", // Include branch name if present
+        materials: 1,
+        totalItemQty: { $sum: "$materials.totalItemQty" },
+        totalAmount: {
+          $sum: {
+            $multiply: [
+              { $sum: "$materials.totalItemQty" },
+              { $first: "$materials.itemRate" }, // Assuming all items have the same rate for the group
+            ],
+          },
+        },
       },
     },
   ];
@@ -995,7 +1334,7 @@ const getSaledDueStatementFromDB = async (
         due: {
           $gte: 0,
         },
-        branch: new mongoose.Types.ObjectId(branch),
+        ...(branch ? { branch: new mongoose.Types.ObjectId(branch) } : {}), // Conditionally add branch filter
       },
     },
     {
@@ -1004,6 +1343,7 @@ const getSaledDueStatementFromDB = async (
           date: {
             $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }, // Group by date
           },
+          branch: "$branch", // Group by branch
         },
         totalDue: { $sum: "$due" },
         totalBills: { $sum: "$totalBill" },
@@ -1011,6 +1351,20 @@ const getSaledDueStatementFromDB = async (
         totalVat: { $sum: "$vat" },
         totalSCharge: { $sum: "$serviceCharge" },
         totalDiscount: { $sum: "$totalDiscount" },
+      },
+    },
+    {
+      $lookup: {
+        from: "branches", // Look up branch details by ID
+        localField: "_id.branch",
+        foreignField: "_id",
+        as: "branchDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$branchDetails",
+        preserveNullAndEmptyArrays: true, // Ensure it works even if no branch is matched
       },
     },
     {
@@ -1022,6 +1376,7 @@ const getSaledDueStatementFromDB = async (
         totalVat: 1,
         totalSCharge: 1,
         totalDiscount: 1,
+        branchName: "$branchDetails.name", // Include branch name in result
         _id: 0,
       },
     },

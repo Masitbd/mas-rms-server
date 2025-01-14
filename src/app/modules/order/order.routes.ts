@@ -28,13 +28,28 @@ routes.get(
   OrderControllers.getAllOrder
 );
 routes.get("/patch-data/:id", OrderControllers.getSingleOrderForPatch);
-routes.get("/active-table-list", OrderControllers.getActiveTableList);
+routes.get(
+  "/active-table-list",
+  auth(
+    ENUM_USER.MANAGER,
+    ENUM_USER.USER,
+    ENUM_USER.CASHIER,
+    ENUM_USER.ACCOUNTANT
+  ),
+  OrderControllers.getActiveTableList
+);
 routes.get(
   "/kitchen-order-list/:id",
   OrderControllers.getKitchenOrderListForSingleBill
 );
 routes.get(
   "/active-table-list-details",
+  auth(
+    ENUM_USER.MANAGER,
+    ENUM_USER.USER,
+    ENUM_USER.CASHIER,
+    ENUM_USER.ACCOUNTANT
+  ),
   OrderControllers.getActiveTableListDetails
 );
 

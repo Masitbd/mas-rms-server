@@ -157,7 +157,6 @@ export class orderDataValidator {
         (Oitem) =>
           (Oitem.item.toString() as unknown as string) == item?.item?.toString()
       );
-      console.log(itemFromOrder);
 
       if (
         itemFromOrder?.isDiscount &&
@@ -204,6 +203,7 @@ export class orderDataValidator {
     return serviceCharge;
   }
   async getPostableData() {
+    console.log(this.billNo);
     if (!this.billNo) {
       this.billNo = await generateOrderId();
     }

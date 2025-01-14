@@ -23,4 +23,5 @@ export default {
   resetlink: process.env.RESET_LINK,
   email: "fk",
   appPass: "fidj",
+  super_admin_email: process.env.SUPER_ADMIN_EMAIL,
 };

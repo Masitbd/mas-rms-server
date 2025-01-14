@@ -107,6 +107,21 @@ const deleteUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const changePasswordByAdmin = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await UserService.changePasswordByAdmin(
+      req.params?.id,
+      req?.body
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "User password Changed successfully!",
+      data: result,
+    });
+  }
+);
 export const UserController = {
   getUserByUUid,
   createUser,
@@ -114,4 +129,5 @@ export const UserController = {
   getAllUser,
   updateUserProfile,
   deleteUser,
+  changePasswordByAdmin,
 };

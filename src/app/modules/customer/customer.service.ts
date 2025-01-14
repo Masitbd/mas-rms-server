@@ -4,17 +4,13 @@ import AppError from "../../errors/AppError";
 import { TCustomer } from "./customer.interface";
 import { Customer } from "./customer.model";
 import { JwtPayload } from "jsonwebtoken";
-import { Types } from "mongoose";
-import { ENUM_USER } from "../../enums/EnumUser";
+import { branchFilterOptionProvider } from "../../helpers/BranchFilterOpeionProvider";
 
 // ? create
 const createCustomerIntoDB = async (
   payload: TCustomer,
   loggedInUserInfo: JwtPayload
 ) => {
-  if (loggedInUserInfo?.branch) {
-    payload.branch = loggedInUserInfo.branch; //? add branch id to table object
-  }
   payload.cid = await generateCustomerId();
   // now save in db with tid
   const result = await Customer.create(payload);
@@ -23,14 +19,7 @@ const createCustomerIntoDB = async (
 
 // ? get all
 const getAllCustomerIntoDB = async (loggedInUserInfo: JwtPayload) => {
-  const filterOption: Record<string, Types.ObjectId> = {};
-  if (
-    loggedInUserInfo?.role !== ENUM_USER.ADMIN &&
-    loggedInUserInfo?.role !== ENUM_USER.SUPER_ADMIN
-  ) {
-    filterOption.branch = loggedInUserInfo?.branch;
-  }
-  const result = await Customer.find(filterOption);
+  const result = await Customer.find();
   return result;
 };
 

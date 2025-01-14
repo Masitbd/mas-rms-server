@@ -42,13 +42,7 @@ export const generateMenuGroupId = async () => {
 // ! generate table id
 
 const findLastTableId = async () => {
-  const lastItem = await Table.findOne(
-    {},
-    {
-      uid: 1,
-      _id: 0,
-    }
-  )
+  const lastItem = await Table.findOne()
     .sort({
       createdAt: -1,
     })
@@ -66,7 +60,6 @@ export const generateTableId = async () => {
   }
 
   const incrementId = (Number(currentId) + 1).toString().padStart(3, "0");
-  console.log(incrementId, "tidj");
 
   return incrementId;
 };

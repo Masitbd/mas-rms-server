@@ -2,6 +2,7 @@ import { Server } from "http";
 import mongoose from "mongoose";
 import app from "./app";
 import config from "./app/config";
+import { insertSuperAdmin } from "./utils/superAdminInserter";
 
 let server: Server;
 
@@ -13,6 +14,9 @@ async function main() {
     server = app.listen(config.port, () => {
       console.log(`app is listening on port ${config.port}`);
     });
+
+    // Super Admin insert
+    await insertSuperAdmin();
   } catch (err) {
     console.log(err);
   }

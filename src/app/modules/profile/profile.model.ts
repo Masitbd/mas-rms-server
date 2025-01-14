@@ -4,8 +4,8 @@ import { IProfile } from "./profile.interface";
 const profileSchema = new Schema<IProfile>(
   {
     name: { type: String, required: true },
-    fatherName: { type: String, required: true },
-    motherName: { type: String, required: true },
+    fatherName: { type: String },
+    motherName: { type: String },
     address: { type: String, required: true },
     email: { type: String, required: true },
     phone: { type: String, required: true },

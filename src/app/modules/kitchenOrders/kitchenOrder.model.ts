@@ -26,6 +26,7 @@ const KitchenOrderSchema = new Schema(
     remark: { type: String, required: false }, // Optional
     tableName: { type: String, required: false }, // Optional
     waiterName: { type: String, required: false }, // Optional
+    orderId: { type: Schema.Types.ObjectId, required: true, ref: "Order" },
   },
   {
     timestamps: true,
