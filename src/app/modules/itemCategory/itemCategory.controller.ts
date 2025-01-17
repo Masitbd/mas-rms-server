@@ -36,6 +36,19 @@ const getAllItemCategory = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
+const getItemByCategory = catchAsync(async (req: Request, res: Response) => {
+  const result = await ItemCategoryServices.getItemsByItemCategoryFromDB(
+    req.query
+  );
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: " Item by Category Retrieved Successfully",
+    data: result,
+  });
+});
+
 const updateItemCategory = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
   const result = await ItemCategoryServices.updateItemCategoryIntoDB(
@@ -66,5 +79,6 @@ export const ItemCategoryControllers = {
   createItemCategory,
   getAllItemCategory,
   updateItemCategory,
+  getItemByCategory,
   deleteItemCategory,
 };

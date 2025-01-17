@@ -211,7 +211,15 @@ const getDailySalesStatementSummeryFromDB = async (
               dateWiseSummary: [
                 {
                   $group: {
-                    _id: "$branch",
+                    _id: {
+                      branch: "$branch",
+                      date: {
+                        $dateToString: {
+                          format: "%Y-%m-%d",
+                          date: "$createdAt",
+                        },
+                      },
+                    },
                     branchName: { $first: "$branchDetails.name" },
                     totalBill: { $sum: "$totalBill" },
                     totalVat: { $sum: "$totalVat" },
@@ -224,6 +232,29 @@ const getDailySalesStatementSummeryFromDB = async (
                   },
                 },
                 { $sort: { branchName: 1 } }, // Sort branches by name
+              ],
+              paymentModeSummary: [
+                {
+                  $group: {
+                    _id: "$paymentMode",
+                    total: { $sum: "$totalBill" },
+                  },
+                },
+              ],
+              total: [
+                {
+                  $group: {
+                    _id: null,
+                    grandTotalBill: { $sum: "$totalBill" },
+                    grandTotalVat: { $sum: "$totalVat" },
+                    grandTotalGuest: { $sum: "$guest" },
+                    grandTotalDiscount: { $sum: "$totalDiscount" },
+                    grandTotalScharge: { $sum: "$tSChargse" },
+                    grandTotalPayable: { $sum: "$netPayable" },
+                    grandTotalDue: { $sum: "$due" },
+                    grandTotalPaid: { $sum: "$paid" },
+                  },
+                },
               ],
             }
           : {
@@ -238,6 +269,7 @@ const getDailySalesStatementSummeryFromDB = async (
                         },
                       },
                     },
+                    branchName: { $first: "$branchDetails.name" },
                     totalBill: { $sum: "$totalBill" },
                     totalVat: { $sum: "$totalVat" },
                     totalGuest: { $sum: "$guest" },
@@ -281,6 +313,8 @@ const getDailySalesStatementSummeryFromDB = async (
         ...(user.role === "super-admin" && !branch
           ? {
               dateWiseSummary: 1,
+              paymentModeSummary: 1,
+              total: { $arrayElemAt: ["$total", 0] },
             }
           : {
               dateWiseSummary: 1,
@@ -580,10 +614,10 @@ const getMenuGroupWithItemsFromDB = async (
             },
           },
         ]
-      : []), // Apply the branch filter only if a branch is provided
+      : []),
     {
       $lookup: {
-        from: "itemcategroys", // Replace with your actual ItemCategory collection name
+        from: "itemcategroys",
         localField: "itemCategory",
         foreignField: "_id",
         as: "itemCategorysDetails",
@@ -1410,10 +1444,23 @@ const getWaiteWiseSalesFromDB = async (
           $gte: startDate,
           $lte: endDate,
         },
-        branch: new mongoose.Types.ObjectId(branch),
+        ...(branch && { branch: new mongoose.Types.ObjectId(branch) }),
       },
     },
-
+    {
+      $lookup: {
+        from: "branches",
+        localField: "branch",
+        foreignField: "_id",
+        as: "branchDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$branchDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
     {
       $lookup: {
         from: "waiters",
@@ -1425,19 +1472,36 @@ const getWaiteWiseSalesFromDB = async (
     {
       $unwind: { path: "$waiterDetails", preserveNullAndEmptyArrays: true },
     },
-
     {
       $group: {
-        _id: { id: "$waiterDetails._id", name: "$waiterDetails.name" },
+        _id: branch
+          ? {
+              id: "$waiterDetails._id",
+              branchName: "$branchDetails.name",
+              name: "$waiterDetails.name",
+            }
+          : {
+              branchName: "$branchDetails.name",
 
-        totalAmount: { $sum: "$totalBill" }, // Total quantity of the item
+              waiterName: "$waiterDetails.name",
+            },
+        totalAmount: { $sum: "$totalBill" },
       },
     },
-    // Calculate the total amount for each item
     {
       $project: {
-        name: "$_id.name",
-        totalAmount: 1,
+        ...(branch
+          ? {
+              branchName: "$_id.branchName",
+              waiterName: "$_id.name",
+              totalAmount: 1,
+            }
+          : {
+              branchName: "$_id.branchName",
+
+              waiterName: "$_id.waiterName",
+              totalAmount: 1,
+            }),
         _id: 0,
       },
     },
@@ -1466,7 +1530,7 @@ const getWaiterWiseSalesStatementFromDB = async (
           $gte: startDate,
           $lte: endDate,
         },
-        branch: new mongoose.Types.ObjectId(branch),
+        ...(branch ? { branch: new mongoose.Types.ObjectId(branch) } : {}), // Conditionally filter by branch
       },
     },
     {
@@ -1515,11 +1579,10 @@ const getWaiterWiseSalesStatementFromDB = async (
     {
       $group: {
         _id: {
+          branchId: "$branch",
           waiterId: "$waiterDetails._id",
           waiterName: "$waiterDetails.name",
-
           categoryName: "$itemCategoryDetails.name",
-
           itemName: "$itemDetails.itemName",
           itemCode: "$itemDetails.itemCode",
           itemRate: "$itemDetails.rate",
@@ -1534,6 +1597,7 @@ const getWaiterWiseSalesStatementFromDB = async (
     {
       $group: {
         _id: {
+          branchId: "$_id.branchId",
           waiterName: "$_id.waiterName",
           categoryId: "$_id.categoryId",
           categoryName: "$_id.categoryName",
@@ -1552,6 +1616,7 @@ const getWaiterWiseSalesStatementFromDB = async (
     {
       $group: {
         _id: {
+          branchId: "$_id.branchId",
           waiterId: "$_id.waiterId",
           waiterName: "$_id.waiterName",
         },
@@ -1565,12 +1630,28 @@ const getWaiterWiseSalesStatementFromDB = async (
       },
     },
     {
+      $lookup: {
+        from: "branches",
+        localField: "_id.branchId",
+        foreignField: "_id",
+        as: "branchDetails",
+      },
+    },
+    {
+      $unwind: { path: "$branchDetails", preserveNullAndEmptyArrays: true },
+    },
+    {
       $project: {
+        branchId: "$_id.branchId",
+        branchName: "$branchDetails.name",
         waiterId: "$_id.waiterId",
         waiterName: "$_id.waiterName",
         categories: 1,
         _id: 0,
       },
+    },
+    {
+      $sort: { branchName: 1, waiterName: 1 }, // Sort results by branch and waiter name
     },
   ];
 

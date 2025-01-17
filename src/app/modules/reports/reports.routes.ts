@@ -15,26 +15,26 @@ routes.get(
   auth(),
   reportControllers.getItemWiseSalesSatement
 );
-routes.get("/menugroup-items", reportControllers.getMenuGroupItems);
+routes.get("/menugroup-items", auth(), reportControllers.getMenuGroupItems);
 routes.get(
   "/menuitem-consumption",
-  // auth(),
+  auth(),
   reportControllers.getMenuItemsConsumption
 );
-routes.get("/menuitem-costing", reportControllers.getMenuItemsCosting);
+routes.get("/menuitem-costing", auth(), reportControllers.getMenuItemsCosting);
 routes.get(
   "/raw-materials/sales",
-  // auth(),
+  auth(),
   reportControllers.getrawMaterialOnDaiylySales
 );
 routes.get(
   "/item/raw-materials",
-  // auth(),
+  auth(),
   reportControllers.getItemWiseRawMaterailsConsumption
 );
 routes.get(
   "/sales/due-statement",
-  // auth(),
+  auth(),
   reportControllers.getSalesDueStatement
 );
 routes.get("/waiter-wise-sales", auth(), reportControllers.getWaiterWiseSales);
