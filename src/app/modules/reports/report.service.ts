@@ -19,6 +19,7 @@ const getDailyStatementFromDB = async (
   endDate.setHours(23, 59, 59, 999);
 
   const branch = user?.branch || payload.branch;
+  const branchInfo = await Branch.findById(branch);
 
   const query: PipelineStage[] = [
     {
@@ -155,7 +156,7 @@ const getDailyStatementFromDB = async (
   ];
 
   const result = await Order.aggregate(query);
-  return result;
+  return { branchInfo, result };
 };
 
 // ? daily sales statement summery
@@ -171,6 +172,8 @@ const getDailySalesStatementSummeryFromDB = async (
   endDate.setUTCHours(23, 59, 59, 999);
 
   const branch = user?.branch || query.branch;
+
+  const branchInfo = await Branch.findById(branch);
 
   const queryParams: PipelineStage[] = [
     {
@@ -257,7 +260,7 @@ const getDailySalesStatementSummeryFromDB = async (
   ];
 
   const result = await Order.aggregate(queryParams);
-  return result;
+  return { branchInfo, result };
 };
 
 // ! item wise sales satement
@@ -272,6 +275,7 @@ const getItemWiseSalesSatetementFromDB = async (
   endDate.setUTCHours(23, 59, 59, 999);
 
   const branch = user?.branch || query.branch;
+  const branchInfo = await Branch.findById(branch);
 
   const pipelineAggregate: PipelineStage[] = [
     {
@@ -372,7 +376,7 @@ const getItemWiseSalesSatetementFromDB = async (
   ];
 
   const result = await Order.aggregate(pipelineAggregate);
-  return result;
+  return { branchInfo, result };
 };
 
 const getMenuGroupWithItemsFromDB = async (
@@ -380,6 +384,7 @@ const getMenuGroupWithItemsFromDB = async (
   user: any
 ) => {
   const branch = user?.branch || payload.branch;
+  const branchInfo = await Branch.findById(branch);
   const query = [
     {
       $match: {
@@ -454,7 +459,7 @@ const getMenuGroupWithItemsFromDB = async (
 
   try {
     const result = await MenuItemConsumption.aggregate(query);
-    return result;
+    return { branchInfo, result };
   } catch (error) {
     console.error("Error fetching menu group with items:", error);
     throw error;
@@ -467,6 +472,7 @@ const getMenuItemsAndConsumptionFromDB = async (
   user: any
 ) => {
   const branch = user?.branch || payload.branch;
+  const branchInfo = await Branch.findById(branch);
   const query = [
     {
       $match: {
@@ -579,7 +585,7 @@ const getMenuItemsAndConsumptionFromDB = async (
   ];
   try {
     const result = await MenuItemConsumption.aggregate(query);
-    return result;
+    return { branchInfo, result };
   } catch (error) {
     console.error("Error fetching menu group with items:", error);
     throw error;
@@ -591,12 +597,18 @@ const getMenuItemsAndCostingFromDB = async (
   user: any
 ) => {
   const branch = user?.branch || payload.branch;
+  const branchInfo = await Branch.findById(branch);
   const query = [
     {
       $match: {
-        branch: new mongoose.Types.ObjectId(branch),
+        branch: {
+          $elemMatch: {
+            $eq: new mongoose.Types.ObjectId(branch),
+          },
+        },
       },
     },
+
     {
       $lookup: {
         from: "itemcategroys",
@@ -720,7 +732,7 @@ const getMenuItemsAndCostingFromDB = async (
 
   try {
     const result = await MenuItemConsumption.aggregate(query);
-    return result;
+    return { branchInfo, result };
   } catch (error) {
     console.error("Error fetching menu group with items:", error);
     throw error;
@@ -738,6 +750,7 @@ const getRawMaterialConsumptionSalesFromDB = async (
   startDate.setUTCHours(0, 0, 0, 0);
   endDate.setUTCHours(23, 59, 59, 999);
   const branch = user?.branch || query.branch;
+  const branchInfo = await Branch.findById(branch);
   const pipelineAggregate: PipelineStage[] = [
     {
       $match: {
@@ -822,7 +835,7 @@ const getRawMaterialConsumptionSalesFromDB = async (
     },
   ];
   const result = await Order.aggregate(pipelineAggregate);
-  return result;
+  return { branchInfo, result };
 };
 
 // item wise raw materials consumption
@@ -835,6 +848,9 @@ const getItemWiseRawMaterialConsumptionFromDB = async (
   startDate.setUTCHours(0, 0, 0, 0);
   endDate.setUTCHours(23, 59, 59, 999);
   const branch = user?.branch || query.branch;
+
+  const branchInfo = await Branch.findById(branch);
+
   const pipelineAggregate: PipelineStage[] = [
     {
       $match: {
@@ -952,7 +968,7 @@ const getItemWiseRawMaterialConsumptionFromDB = async (
   ];
 
   const result = await Order.aggregate(pipelineAggregate);
-  return result;
+  return { branchInfo, result };
 };
 
 //
@@ -966,6 +982,9 @@ const getSaledDueStatementFromDB = async (
   startDate.setUTCHours(0, 0, 0, 0);
   endDate.setUTCHours(23, 59, 59, 999);
   const branch = user?.branch || query.branch;
+
+  const branchInfo = await Branch.findById(branch);
+
   const pipelineAggregate: PipelineStage[] = [
     {
       $match: {
@@ -1013,7 +1032,7 @@ const getSaledDueStatementFromDB = async (
 
   const result = await Order.aggregate(pipelineAggregate);
 
-  return result;
+  return { branchInfo, result };
 };
 
 // waite wise sales
@@ -1027,6 +1046,7 @@ const getWaiteWiseSalesFromDB = async (
   startDate.setUTCHours(0, 0, 0, 0);
   endDate.setUTCHours(23, 59, 59, 999);
   const branch = user?.branch || query.branch;
+  const branchInfo = await Branch.findById(branch);
 
   const pipelineAggregate: PipelineStage[] = [
     {
@@ -1069,7 +1089,7 @@ const getWaiteWiseSalesFromDB = async (
   ];
 
   const result = await Order.aggregate(pipelineAggregate);
-  return result;
+  return { branchInfo, result };
 };
 
 // waiter wise sales statement
@@ -1083,6 +1103,7 @@ const getWaiterWiseSalesStatementFromDB = async (
   startDate.setUTCHours(0, 0, 0, 0);
   endDate.setUTCHours(23, 59, 59, 999);
   const branch = user?.branch || query.branch;
+  const branchInfo = await Branch.findById(branch);
   const pipelineAggregate: PipelineStage[] = [
     {
       $match: {
@@ -1199,7 +1220,7 @@ const getWaiterWiseSalesStatementFromDB = async (
   ];
 
   const result = await Order.aggregate(pipelineAggregate);
-  return result;
+  return { branchInfo, result };
 };
 
 //!  get dashboard static data

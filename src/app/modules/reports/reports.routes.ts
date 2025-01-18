@@ -21,7 +21,7 @@ routes.get(
   auth(),
   reportControllers.getMenuItemsConsumption
 );
-routes.get("/menuitem-costing", auth(), reportControllers.getMenuItemsCosting);
+routes.get("/menuitem-costing", reportControllers.getMenuItemsCosting);
 routes.get(
   "/raw-materials/sales",
   auth(),
