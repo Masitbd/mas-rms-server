@@ -5,4 +5,6 @@ export type TItemCategory = {
   name: string;
   menuGroup: Types.ObjectId;
   branch: Types.ObjectId;
+  image?: Types.ObjectId;
+  isPopular: boolean;
 };
