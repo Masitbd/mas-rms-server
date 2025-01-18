@@ -11,6 +11,8 @@ const itemCategoySchema = new Schema<TItemCategory>(
       required: true,
     },
     branch: { type: Schema.Types.ObjectId, ref: "Branch" },
+    image: { type: Schema.Types.ObjectId, ref: "Images" },
+    isPopular: { type: Boolean, default: false },
   },
   {
     timestamps: true,
