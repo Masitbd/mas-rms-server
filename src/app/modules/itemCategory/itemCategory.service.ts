@@ -24,15 +24,15 @@ const createItemCategoryIntoDB = async (
 
 //  get all
 
-const getAllItemCategoryIdFromDB = async (
-  payload: any,
-  loggedInUserInfo: JwtPayload
-) => {
-  const filterOption = branchFilterOptionProvider(loggedInUserInfo);
-  const isCondition = payload?.menuGroup
+const getAllItemCategoryIdFromDB = async (payload: any) => {
+  const isCondition: Record<string, any> = payload?.menuGroup
     ? { menuGroup: payload?.menuGroup }
     : {};
-  const result = await ItemCategroy.find({ $and: [filterOption, isCondition] })
+
+  if (payload?.isPopular) {
+    isCondition.isPopular = true;
+  }
+  const result = await ItemCategroy.find({ $and: [isCondition] })
     .populate("menuGroup", "name")
     .populate("branch")
     .populate("image")

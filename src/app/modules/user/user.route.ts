@@ -30,4 +30,6 @@ router.patch(
 );
 router.get("/:uuid", UserController.getUserByUUid);
 router.delete("/:uuid", UserController.deleteUser);
+
+router.post("/user-sign-up", UserController.userSignUp);
 export const UserRoutes = router;

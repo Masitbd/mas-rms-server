@@ -14,6 +14,9 @@ import { IOptions, paginationHelpers } from "../../helpers/paginationHelper";
 import { JwtPayload } from "jsonwebtoken";
 import { ENUM_USER } from "../../enums/EnumUser";
 import bcrypt from "bcrypt";
+import { ENUM_PROVIDER } from "../../enums/ProviderEnum";
+import { AuthService } from "../auth/auth.service";
+import { handleGoogleLogin, userCreator } from "./user.halper";
 const createUser = async (
   profile: IProfile,
   user: IUser,
@@ -30,14 +33,13 @@ const createUser = async (
       );
     }
 
-    console.log("isUser", user);
     if (user?.role !== ENUM_USER.USER && !user?.branch) {
       user.branch = loggedInUserInfo?.branch;
     }
-    console.log("isUser 2", user);
   }
 
-  // check for branch
+  // set the provider t local
+  user.provider = ENUM_PROVIDER.LOCAL;
 
   // If password is not given,set default password
   if (!user.password) {
@@ -86,12 +88,6 @@ const createUser = async (
   } finally {
     await session.endSession();
   }
-
-  // if (newUserAllData) {
-  //   newUserAllData = await User.findOne({ id: newUserAllData.id }).populate({
-  //     path: "profile",
-  //   });
-  // }
 
   return newUserAllData;
 };
@@ -240,6 +236,42 @@ const changePasswordByAdmin = async (
   }
   return;
 };
+
+const userSignUp = async (user: IUser & IProfile) => {
+  // For local sign up
+  if (user.provider == ENUM_PROVIDER.LOCAL) {
+    const doesExists = await User.findOne({ email: user.email });
+    if (doesExists) {
+      throw new ApiError(409, "Email already exists");
+    }
+    const result = await userCreator(user);
+    return "User created successfully";
+  }
+
+  // For provider signup
+  if (
+    user.provider == ENUM_PROVIDER.GOOGLE ||
+    user.provider == ENUM_PROVIDER.FACEBOOK
+  ) {
+    // if user exists then begin the login process
+
+    // Begin varificatoin process for google
+    if (user.provider == ENUM_PROVIDER.GOOGLE) {
+      const userInfo = await handleGoogleLogin(
+        user?.idToken as string,
+        user.provider
+      );
+
+      console.log(userInfo);
+      const loggedInInfo = await AuthService.loginUser({
+        email: userInfo?.email as string,
+        provider: ENUM_PROVIDER.GOOGLE,
+      });
+      return loggedInInfo;
+    }
+  }
+};
+
 export const UserService = {
   createUser,
   getSIngleUser,
@@ -247,4 +279,5 @@ export const UserService = {
   patchUserProfile,
   deleteUser,
   changePasswordByAdmin,
+  userSignUp,
 };

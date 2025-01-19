@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import { Schema, model } from "mongoose";
 import config from "../../config";
 import { IUser, UserModel } from "./user.interface";
+import { ENUM_PROVIDER } from "../../enums/ProviderEnum";
 
 const UserSchema = new Schema<IUser, UserModel>(
   {
@@ -17,12 +18,11 @@ const UserSchema = new Schema<IUser, UserModel>(
     },
     password: {
       type: String,
-      required: true,
       select: 0,
     },
     needsPasswordChange: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     passwordChangedAt: {
       type: Date,
@@ -42,6 +42,15 @@ const UserSchema = new Schema<IUser, UserModel>(
     branch: {
       type: Schema.Types.ObjectId,
       ref: "Branch",
+    },
+
+    provider: {
+      type: String,
+      enum: ["google", "facebook", "local"],
+      default: ENUM_PROVIDER.LOCAL,
+    },
+    sub: {
+      type: String,
     },
   },
   {
@@ -87,10 +96,12 @@ UserSchema.methods.changedPasswordAfterJwtIssued = function (
 UserSchema.pre("save", async function (next) {
   // hashing user password
   const user = this;
-  user.password = await bcrypt.hash(
-    user.password,
-    Number(config.bycrypt_salt_rounds)
-  );
+  if (user.provider == ENUM_PROVIDER.LOCAL && user.password) {
+    user.password = await bcrypt.hash(
+      user.password,
+      Number(config.bycrypt_salt_rounds)
+    );
+  }
 
   if (!user.needsPasswordChange) {
     user.passwordChangedAt = new Date();

@@ -14,11 +14,13 @@ import { User } from "../user/user.model";
 import { IUserResponse } from "../user/user.interface";
 import { Profile } from "../profile/profile.model";
 import config from "../../config";
+import { ENUM_PROVIDER } from "../../enums/ProviderEnum";
 
 const loginUser = async (payload: ILoginUser): Promise<ILoginUserResponse> => {
-  const { email, password } = payload;
+  const { email, password, provider } = payload;
 
-  if (!email || !password) {
+  // IF local login no need fo password check
+  if (provider == ENUM_PROVIDER.LOCAL && (!email || !password)) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       "Please provide email and password"
@@ -31,9 +33,11 @@ const loginUser = async (payload: ILoginUser): Promise<ILoginUserResponse> => {
     throw new ApiError(httpStatus.NOT_FOUND, "User does not exist");
   }
 
+  // no need for password validation for provider login
   if (
     isUserExist.password &&
-    !(await User.isPasswordMatched(password, isUserExist.password))
+    provider == ENUM_PROVIDER.LOCAL &&
+    !(await User.isPasswordMatched(password as string, isUserExist.password))
   ) {
     throw new ApiError(httpStatus.UNAUTHORIZED, "Password is incorrect");
   }

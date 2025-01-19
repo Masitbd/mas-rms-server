@@ -1,8 +1,10 @@
+import { ENUM_PROVIDER } from "../../enums/ProviderEnum";
 import { USER_ROLE } from "../../enums/userRole.enum";
 
 export type ILoginUser = {
   email: string;
-  password: string;
+  password?: string;
+  provider: ENUM_PROVIDER;
 };
 
 export type ILoginUserResponse = {
