@@ -122,6 +122,16 @@ const changePasswordByAdmin = catchAsync(
     });
   }
 );
+
+const userSignUp = catchAsync(async (req: Request, res: Response) => {
+  const result = await UserService.userSignUp(req.body);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User created successfully!",
+    data: result,
+  });
+});
 export const UserController = {
   getUserByUUid,
   createUser,
@@ -130,4 +140,5 @@ export const UserController = {
   updateUserProfile,
   deleteUser,
   changePasswordByAdmin,
+  userSignUp,
 };

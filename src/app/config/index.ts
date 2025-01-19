@@ -24,4 +24,5 @@ export default {
   email: "fk",
   appPass: "fidj",
   super_admin_email: process.env.SUPER_ADMIN_EMAIL,
+  google_client_id: process.env.GOOGLE_CLIENT_ID,
 };

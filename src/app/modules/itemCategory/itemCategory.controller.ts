@@ -23,12 +23,10 @@ const createItemCategory = catchAsync(async (req: Request, res: Response) => {
 //  get all
 
 const getAllItemCategory = catchAsync(async (req: Request, res: Response) => {
-  const filterOption = pick(req.query, ["menuGroup"]);
-  const loggedInUserInfo = req.user;
-  const result = await ItemCategoryServices.getAllItemCategoryIdFromDB(
-    filterOption,
-    loggedInUserInfo
-  );
+  const filterOption = pick(req.query, ["menuGroup", "isPopular"]);
+
+  const result =
+    await ItemCategoryServices.getAllItemCategoryIdFromDB(filterOption);
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,

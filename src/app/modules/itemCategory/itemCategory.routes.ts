@@ -12,14 +12,7 @@ routes.post(
 );
 routes.get(
   "/",
-  auth(
-    ENUM_USER.SUPER_ADMIN,
-    ENUM_USER.ADMIN,
-    ENUM_USER.MANAGER,
-    ENUM_USER.ACCOUNTANT,
-    ENUM_USER.CASHIER,
-    ENUM_USER.USER
-  ),
+
   ItemCategoryControllers.getAllItemCategory
 );
 
