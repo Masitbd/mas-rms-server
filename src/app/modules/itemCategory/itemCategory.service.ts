@@ -3,9 +3,10 @@ import { JwtPayload } from "jsonwebtoken";
 import { generateItemCategoryId } from "../../../utils/generateUniqueId";
 import { TItemCategory } from "./itemCategory.interface";
 import { ItemCategroy } from "./itemCategory.model";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { ENUM_USER } from "../../enums/EnumUser";
 import { branchFilterOptionProvider } from "../../helpers/BranchFilterOpeionProvider";
+import MenuItemConsumption from "../rawMaterialConsumption/rawMaterialConsumption.model";
 
 const createItemCategoryIntoDB = async (
   payload: TItemCategory,
@@ -53,6 +54,64 @@ const updateItemCategoryIntoDB = async (
   return result;
 };
 
+//! get items by item category
+
+const getItemsByItemCategoryFromDB = async (query: Record<string, any>) => {
+  const id = query.id;
+  const piplelineQuery = [
+    ...(id
+      ? [
+          {
+            $match: {
+              itemCategory: new mongoose.Types.ObjectId(id),
+            },
+          },
+        ]
+      : []),
+
+    {
+      $lookup: {
+        from: "itemcategroys",
+        localField: "itemCategory",
+        foreignField: "_id",
+        as: "itemCategorysDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$itemCategorysDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $group: {
+        _id: {
+          itemGroup: "$itemCategorysDetails.name",
+        },
+        items: {
+          $push: {
+            name: "$itemName",
+            code: "$itemCode",
+            rate: "$rate",
+            details: "$description",
+            images: "$images",
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        itemCategoryName: "$_id.itemGroup", // Rename _id to itemCategoryName
+        items: 1, // Include items array in the result
+        _id: 0, // Exclude the default _id field
+      },
+    },
+  ];
+
+  const result = await MenuItemConsumption.aggregate(piplelineQuery);
+  return result;
+};
+
 //  delete
 
 const deleteItemCategoryIntoDB = async (id: string) => {
@@ -64,5 +123,6 @@ export const ItemCategoryServices = {
   createItemCategoryIntoDB,
   getAllItemCategoryIdFromDB,
   updateItemCategoryIntoDB,
+  getItemsByItemCategoryFromDB,
   deleteItemCategoryIntoDB,
 };

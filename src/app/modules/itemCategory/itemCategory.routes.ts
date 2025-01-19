@@ -15,6 +15,7 @@ routes.get(
 
   ItemCategoryControllers.getAllItemCategory
 );
+routes.get("/items", ItemCategoryControllers.getItemByCategory);
 
 routes.patch(
   "/:id",
