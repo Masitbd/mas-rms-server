@@ -205,7 +205,7 @@ export class orderDataValidator {
   async getPostableData() {
     console.log(this.billNo);
     if (!this.billNo) {
-      this.billNo = await generateOrderId();
+      this.billNo = await generateOrderId(this.branch as unknown as string);
     }
     const vatAndDiscount = await this.calculateDiscountAndVat();
     const serviceCharge = await this.calculateServiceCharge();

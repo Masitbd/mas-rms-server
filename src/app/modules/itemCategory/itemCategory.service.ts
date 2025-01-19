@@ -36,6 +36,7 @@ const getAllItemCategoryIdFromDB = async (
   const result = await ItemCategroy.find({ $and: [filterOption, isCondition] })
     .populate("menuGroup", "name")
     .populate("branch")
+    .populate("image")
     .sort({ createdAt: -1 });
   return result;
 };

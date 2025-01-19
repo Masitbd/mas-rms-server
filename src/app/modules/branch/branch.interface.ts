@@ -7,4 +7,6 @@ export type TBranch = {
   isActive: boolean;
   address1: string;
   address2: string;
+  availability: string;
+  deliveryLocations: string[];
 };

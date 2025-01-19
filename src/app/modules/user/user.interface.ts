@@ -30,7 +30,9 @@ export type IUserResponse = {
 export type UserModel = {
   isUserExist(
     uuid: string
-  ): Promise<Pick<IUser, "uuid" | "password" | "role" | "needsPasswordChange">>;
+  ): Promise<
+    Pick<IUser, "uuid" | "password" | "role" | "needsPasswordChange" | "branch">
+  >;
   isPasswordMatched(
     givenPassword: string,
     savedPassword: string

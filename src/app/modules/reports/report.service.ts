@@ -179,6 +179,7 @@ const getDailySalesStatementSummeryFromDB = async (
     branchInfo = await Branch.findById(branch);
   }
 
+
   const queryParams: PipelineStage[] = [
     {
       $match: {
@@ -342,7 +343,9 @@ const getItemWiseSalesSatetementFromDB = async (
   endDate.setUTCHours(23, 59, 59, 999);
 
   const branch = user?.branch || query.branch;
+
   let branchInfo = branch ? await Branch.findById(branch) : null;
+
 
   const pipelineAggregate: PipelineStage[] = [
     {
@@ -482,6 +485,7 @@ const getItemWiseSalesSatetementFromDB = async (
 
   const result = await Order.aggregate(pipelineAggregate);
 
+
   if (!branchInfo && branch) {
     branchInfo = await Branch.findById(branch);
   }
@@ -494,6 +498,7 @@ const getMenuGroupWithItemsFromDB = async (
   user: any
 ) => {
   const branch = user?.branch || payload.branch;
+
   const branchInfo = branch ? await Branch.findById(branch) : null;
 
   // const query = [
@@ -598,6 +603,7 @@ const getMenuGroupWithItemsFromDB = async (
   //     },
   //   },
   // ];
+
 
   const query = [
     {
@@ -708,8 +714,10 @@ const getMenuGroupWithItemsFromDB = async (
     },
   ];
 
+
   const result = await MenuItemConsumption.aggregate(query);
   return { branchInfo, result };
+
 };
 
 // menu item and coinsumptionconst
@@ -867,6 +875,7 @@ const getMenuItemsAndConsumptionFromDB = async (
       },
     },
   ];
+
 
   const result = await MenuItemConsumption.aggregate(query);
   return { branchInfo, result };
@@ -1065,6 +1074,7 @@ const getRawMaterialConsumptionSalesFromDB = async (
   const branchInfo = await Branch.findById(branch);
 
   const pipelineAggregate = [
+
     {
       $match: {
         createdAt: {

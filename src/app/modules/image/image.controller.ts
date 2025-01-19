@@ -19,7 +19,8 @@ const update = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id;
   const result = await ImageService.updateImage(
     req.files as { buffer: Buffer }[],
-    id
+    id,
+    req.query
   );
   sendResponse(res, {
     success: true,

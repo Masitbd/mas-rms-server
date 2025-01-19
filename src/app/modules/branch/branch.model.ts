@@ -11,6 +11,8 @@ const branchSchema = new Schema<TBranch>(
     isActive: { type: Boolean, default: true },
     address1: { type: String, required: true },
     address2: { type: String },
+    availability: { type: String, required: true },
+    deliveryLocations: [{ type: String }],
   },
   { timestamps: true }
 );

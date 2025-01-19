@@ -34,9 +34,11 @@ import {
 } from "./order.helper";
 import { IKitchenOrderData } from "../kitchenOrders/kitchenOrder.interface";
 import { KitchenOrder } from "../kitchenOrders/kitchenOrder.model";
-import { JwtPayload } from "jsonwebtoken";
+import { Jwt, JwtPayload } from "jsonwebtoken";
 import { ENUM_USER } from "../../enums/EnumUser";
 import { ENUM_ORDER_STATUS } from "../../enums/EnumOrderStatus";
+import { DueCollection } from "../dewCollection/dueCollection.model";
+import { Branch } from "../branch/branch.model";
 
 const createOrderIntoDB = async (payload: TOrder, loggedInuser: JwtPayload) => {
   const session = await mongoose.startSession();
@@ -51,6 +53,10 @@ const createOrderIntoDB = async (payload: TOrder, loggedInuser: JwtPayload) => {
     }
     payload.branch = loggedInuser?.branch;
 
+    const doesBranchExists = await Branch.findById(loggedInuser?.branch);
+    if (!doesBranchExists) {
+      throw new AppError(StatusCodes.FORBIDDEN, "Branch not found");
+    }
     // Checking if table is occupied
     if (payload?.tableName) {
       const isOccupied = await isTableOccupied(
@@ -108,6 +114,15 @@ const createOrderIntoDB = async (payload: TOrder, loggedInuser: JwtPayload) => {
       };
 
       (await KitchenOrder.create(kitchenOrderData)).$session(session);
+    }
+
+    if (orderData?.paid > 0) {
+      await DueCollection.create({
+        amount: orderData.paid,
+        method: orderData?.paymentMode,
+        orderId: result?._id,
+        postedBy: loggedInuser?.uuid,
+      });
     }
     await session.commitTransaction();
     return result;
@@ -254,6 +269,82 @@ const getSIngleOrderWithPopulate = async (id: string) => {
   return result;
 };
 
+const dueCollection = async (
+  id: string,
+  data: { amount: number; method: string; remark?: string },
+  loggedInUser: JwtPayload
+) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const doesOrderExist = await Order.findById(id).session(session);
+
+    if (data?.amount < 0 || data?.amount > (doesOrderExist?.due as number)) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Invalid Amount");
+    }
+
+    const updatedData = await Order.updateOne(
+      { _id: new Types.ObjectId(id) },
+      {
+        due: Number(doesOrderExist?.due) - Number(data.amount),
+        paid: Number(doesOrderExist?.paid) + Number(data.amount),
+      },
+      { new: true, session }
+    );
+
+    await DueCollection.create(
+      [{ ...data, postedBy: loggedInUser.uuid, orderId: doesOrderExist?._id }],
+      {
+        session,
+      }
+    );
+
+    await session.commitTransaction();
+    return Order.findById(id)
+      .populate("items.item")
+      .populate("customer")
+      .populate("branch");
+  } catch (error) {
+    await session.abortTransaction();
+    throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, error as string);
+  }
+};
+
+const getDueCollectionHistory = async (id: string) => {
+  const result = await DueCollection.aggregate([
+    {
+      $match: {
+        orderId: new Types.ObjectId(id),
+      },
+    },
+    {
+      $lookup: {
+        from: "profiles",
+        localField: "postedBy",
+        foreignField: "uuid",
+        as: "postedBy",
+      },
+    },
+    {
+      $unwind: "$postedBy",
+    },
+    {
+      $project: {
+        _id: 1,
+        billNo: 1,
+        amount: 1,
+        method: 1,
+        remark: 1,
+        postedBy: {
+          name: "$postedBy.name",
+          uuid: "$postedBy.uuid",
+        },
+        createdAt: 1,
+      },
+    },
+  ]);
+  return result;
+};
 export const OrderServices = {
   createOrderIntoDB,
   getAllOderFromDB,
@@ -264,4 +355,6 @@ export const OrderServices = {
   updateOrder,
   changeStatus,
   getSIngleOrderWithPopulate,
+  dueCollection,
+  getDueCollectionHistory,
 };
