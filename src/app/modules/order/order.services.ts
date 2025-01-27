@@ -9,6 +9,7 @@ import {
   IActiveTable,
   IItems,
   IPopulatedOrderData,
+  ORDER_PLATFORM,
   ORDER_STATUS,
   TOrder,
   TOrderForCacheServer,
@@ -39,26 +40,32 @@ import { ENUM_USER } from "../../enums/EnumUser";
 import { ENUM_ORDER_STATUS } from "../../enums/EnumOrderStatus";
 import { DueCollection } from "../dewCollection/dueCollection.model";
 import { Branch } from "../branch/branch.model";
+import { Customer } from "../customer/customer.model";
 
 const createOrderIntoDB = async (payload: TOrder, loggedInuser: JwtPayload) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    if (!loggedInuser?.branch) {
+    // 1. Checking if the order is online or offine
+    if (!loggedInuser?.branch && payload?.platform !== ORDER_PLATFORM.ONLINE) {
       // add branch id to order
       throw new AppError(
         StatusCodes.BAD_REQUEST,
         "You are not permitted to create order"
       );
     }
-    payload.branch = loggedInuser?.branch;
 
-    const doesBranchExists = await Branch.findById(loggedInuser?.branch);
-    if (!doesBranchExists) {
-      throw new AppError(StatusCodes.FORBIDDEN, "Branch not found");
+    // 2. IF offline setting the branch infor
+    if (payload.platform == ORDER_PLATFORM.OFFLINE) {
+      payload.branch = loggedInuser?.branch;
+      const doesBranchExists = await Branch.findById(loggedInuser?.branch);
+      if (!doesBranchExists) {
+        throw new AppError(StatusCodes.FORBIDDEN, "Branch not found");
+      }
     }
+
     // Checking if table is occupied
-    if (payload?.tableName) {
+    if (payload?.tableName && payload.platform == ORDER_PLATFORM.OFFLINE) {
       const isOccupied = await isTableOccupied(
         payload?.tableName as unknown as string,
         loggedInuser?.branch
@@ -67,6 +74,39 @@ const createOrderIntoDB = async (payload: TOrder, loggedInuser: JwtPayload) => {
         throw new AppError(StatusCodes.CONFLICT, "Table is already occupied");
       }
     }
+
+    // setting the posted by field
+    if (loggedInuser?.id) {
+      payload.postedBy = loggedInuser?.id;
+    } else {
+      throw new AppError(400, "No user info found");
+    }
+
+    // 4. If order is online than setting the customer data
+    if (payload?.platform == ORDER_PLATFORM.ONLINE) {
+      const customerInfo = await Customer.findOne({
+        email: loggedInuser?.email,
+      }).select("_id");
+      if (!customerInfo) {
+        throw new AppError(StatusCodes.UNAUTHORIZED, "Invalid customer data");
+      }
+      payload.customer = customerInfo._id;
+      payload.guestType = "registered";
+
+      // 5. finding the branch and setting it
+
+      const branch = await Branch.find({
+        division: payload?.deliveryAddress?.division,
+        city: payload?.deliveryAddress?.city,
+        deliveryLocations: payload?.deliveryAddress?.zone,
+      });
+
+      if (!branch?.length) {
+        throw new AppError(StatusCodes.FORBIDDEN, "No Nearby  Branch  found");
+      }
+      payload.branch = branch[0]._id;
+    }
+
     const orderValidatorInstance = new orderDataValidator(payload);
     const orderData = await orderValidatorInstance.getPostableData();
 
@@ -345,6 +385,18 @@ const getDueCollectionHistory = async (id: string) => {
   ]);
   return result;
 };
+
+const getUserOrder = async (userId: string) => {
+  const result = await Order.find({
+    postedBy: new Types.ObjectId(userId),
+  }).populate([
+    { path: "customer" },
+    { path: "items.item" },
+    { path: "deliveryAddress" },
+  ]);
+
+  return result;
+};
 export const OrderServices = {
   createOrderIntoDB,
   getAllOderFromDB,
@@ -357,4 +409,5 @@ export const OrderServices = {
   getSIngleOrderWithPopulate,
   dueCollection,
   getDueCollectionHistory,
+  getUserOrder,
 };

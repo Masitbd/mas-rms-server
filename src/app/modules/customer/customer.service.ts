@@ -7,10 +7,7 @@ import { JwtPayload } from "jsonwebtoken";
 import { branchFilterOptionProvider } from "../../helpers/BranchFilterOpeionProvider";
 
 // ? create
-const createCustomerIntoDB = async (
-  payload: TCustomer,
-  loggedInUserInfo: JwtPayload
-) => {
+const createCustomerIntoDB = async (payload: TCustomer) => {
   payload.cid = await generateCustomerId();
   // now save in db with tid
   const result = await Customer.create(payload);

@@ -13,6 +13,8 @@ const branchSchema = new Schema<TBranch>(
     address2: { type: String },
     availability: { type: String, required: true },
     deliveryLocations: [{ type: String }],
+    division: { type: String, required: true },
+    city: { type: String, required: true, lowercase: true },
   },
   { timestamps: true }
 );

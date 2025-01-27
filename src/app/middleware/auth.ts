@@ -20,6 +20,7 @@ const auth =
 
       verifiedUser = jwtHelpers.verifyToken(token, config.jwt.secret as Secret);
 
+      console.log(verifiedUser);
       req.user = verifiedUser; // role  , userid
 
       if (verifiedUser?.role == ENUM_USER_PERMISSION.SUPER_ADMIN) {

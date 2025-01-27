@@ -191,6 +191,20 @@ class MenuItemConsumptionService {
       );
     }
   }
+
+  async fetchDiscountedItems(): Promise<IMenuItemConsumption[]> {
+    try {
+      const result = await MenuItemConsumption.find({
+        discount: { $gt: 0 },
+      }).populate(["images", "itemCategory"]);
+      return result;
+    } catch (error: any) {
+      throw new AppError(
+        StatusCodes.BAD_REQUEST,
+        `Error Fetching discounted menu item consumption: ${error.message}`
+      );
+    }
+  }
 }
 
 export default new MenuItemConsumptionService();

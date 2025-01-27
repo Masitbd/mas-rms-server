@@ -1,6 +1,5 @@
-
 import { model, Schema } from "mongoose";
-import { ORDER_STATUS, TOrder } from "./order.interface";
+import { ORDER_PLATFORM, ORDER_STATUS, TOrder } from "./order.interface";
 
 const orderSchema = new Schema<TOrder>(
   {
@@ -49,7 +48,18 @@ const orderSchema = new Schema<TOrder>(
       enum: ["posted", "notPosted", "void"],
       default: ORDER_STATUS.NOT_POSTED,
     },
-    branch: { type: Schema.Types.ObjectId, ref: "Branch", required: true },
+    branch: { type: Schema.Types.ObjectId, ref: "Branch" },
+    platform: { type: String, default: ORDER_PLATFORM.OFFLINE },
+    deliveryMethod: { type: String },
+    deliveryCharge: { type: Number },
+    deliveryAddress: {
+      type: Schema.Types.ObjectId,
+      ref: "DeliveryAddress",
+    },
+    postedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
   },
   { timestamps: true }
 );

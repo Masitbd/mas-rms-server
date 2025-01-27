@@ -6,10 +6,7 @@ import { StatusCodes } from "http-status-codes";
 
 const createCustomer = catchAsync(async (req: Request, res: Response) => {
   const loggedInUserInfo = req.user; //? add branch id to table object
-  const result = await CustomerSevices.createCustomerIntoDB(
-    req.body,
-    loggedInUserInfo
-  );
+  const result = await CustomerSevices.createCustomerIntoDB(req.body);
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,

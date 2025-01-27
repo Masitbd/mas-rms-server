@@ -1,4 +1,6 @@
+import { StatusCodes } from "http-status-codes";
 import { generateBranchId } from "../../../utils/generateUniqueId";
+import AppError from "../../errors/AppError";
 import { TBranch } from "./branch.interface";
 import { Branch } from "./branch.model";
 
@@ -36,10 +38,83 @@ const deleteBranchFromDB = async (id: string) => {
   return result;
 };
 
+const getDeliverableCity = async (division: string) => {
+  return await Branch.aggregate([
+    {
+      $match: {
+        division: division,
+        isActive: true,
+        availability: { $ne: "offline" },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        city: {
+          $push: "$city",
+        },
+      },
+    },
+  ]);
+};
+
+const getDeliveryZones = async (division: string, city: string) => {
+  return await Branch.aggregate([
+    {
+      $match: {
+        division: division,
+        city: city,
+        isActive: true,
+        availability: { $ne: "offline" },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        deliveryLocations: {
+          $push: "$deliveryLocations",
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        deliveryLocations: {
+          $reduce: {
+            input: "$deliveryLocations",
+            initialValue: [],
+            in: { $concatArrays: ["$$value", "$$this"] },
+          },
+        },
+      },
+    },
+  ]);
+};
+
+const getDoesDeliver = async (location: string) => {
+  if (!location) {
+    throw new AppError(
+      StatusCodes.NOT_FOUND,
+      "We Don't deliver to your location"
+    );
+  }
+  const doesExists = await Branch.find({ deliveryLocations: location });
+  if (doesExists.length) {
+    return "Yes We Deliver to Your Location";
+  } else {
+    throw new AppError(
+      StatusCodes.NOT_FOUND,
+      "We Don't deliver to your location"
+    );
+  }
+};
 export const BranchSerives = {
   createBranchIntoDB,
   getAllBranchFromDB,
   getSingleBranchFromDB,
   updateBranchIntoDB,
   deleteBranchFromDB,
+  getDeliverableCity,
+  getDeliveryZones,
+  getDoesDeliver,
 };

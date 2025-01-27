@@ -3,6 +3,7 @@ import { IMenuItemConsumption } from "../rawMaterialConsumption/rawMaterialConsu
 import { TCustomer } from "../customer/customer.interface";
 import { TTable } from "../table/table.interface";
 import { TWaiter } from "../waiter/waiter.interface";
+import { TDeliveryAddress } from "../deliveryAddresses/deliveryAddresses.interface";
 
 export type IItems = {
   item: IMenuItemConsumption | Types.ObjectId;
@@ -50,6 +51,13 @@ export type TOrder = {
   guestType: string;
   status?: ORDER_STATUS;
   branch: Types.ObjectId;
+  platform: string;
+
+  deliveryMethod?: string;
+  deliveryCharge?: number;
+  deliveryAddress?: TDeliveryAddress;
+
+  postedBy: Types.ObjectId;
 };
 
 export type TOrderForCacheServer = TOrder & {
@@ -73,4 +81,9 @@ export enum ORDER_STATUS {
   POSTED = "posted",
   NOT_POSTED = "notPosted",
   VOID = "void",
+}
+
+export enum ORDER_PLATFORM {
+  ONLINE = "online",
+  OFFLINE = "offline",
 }

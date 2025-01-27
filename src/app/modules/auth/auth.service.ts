@@ -15,6 +15,9 @@ import { IUserResponse } from "../user/user.interface";
 import { Profile } from "../profile/profile.model";
 import config from "../../config";
 import { ENUM_PROVIDER } from "../../enums/ProviderEnum";
+import { ENUM_USER } from "../../enums/EnumUser";
+import { DeliveryAddress } from "../deliveryAddresses/deliveryAddresses.model";
+import { Types } from "mongoose";
 
 const loginUser = async (payload: ILoginUser): Promise<ILoginUserResponse> => {
   const { email, password, provider } = payload;
@@ -62,24 +65,42 @@ const loginUser = async (payload: ILoginUser): Promise<ILoginUserResponse> => {
     );
   }
 
+  const accessTokenData: any = {
+    uuid: userId,
+    role,
+    name: profile.name,
+    email: userMail,
+    status: status,
+    id: id,
+    branch: branch,
+  };
+
+  // Setting default delivery address to the user token
+
+  if (role == ENUM_USER.USER) {
+    const doesExists = await DeliveryAddress.find({
+      userId: new Types.ObjectId(id),
+      isDefault: true,
+    });
+    if (doesExists.length > 0) {
+      const deliveryAddressData = {
+        isAvailable: true,
+        addressData: doesExists[0],
+      };
+      accessTokenData.deliveryAddressData = deliveryAddressData;
+    }
+  }
+
   // checking is the user is rusticate
 
   const accessToken = jwtHelpers.createToken(
-    {
-      uuid: userId,
-      role,
-      name: profile.name,
-      email: userMail,
-      status: status,
-      id: id,
-      branch: branch,
-    },
+    accessTokenData,
     config.jwt.secret as Secret,
     config.jwt.expires_in as string
   );
 
   const refreshToken = jwtHelpers.createToken(
-    { userId, role, email: userMail, status },
+    { userId, role, email: userMail, status, id: id, branch: branch },
     config.jwt.refresh_secret as Secret,
     config.jwt.refresh_expires_in as string
   );
@@ -108,19 +129,44 @@ const refreshToken = async (token: string): Promise<IRefreshTokenResponse> => {
 
   // checking deleted user's refresh token
 
-  const isUserExist = await User.isUserExist(email);
-  if (!isUserExist) {
+  const isUserExist = (await User.isUserExist(
+    email
+  )) as unknown as IUserResponse;
+  // get new profile
+  const profile = await Profile.findOne({ uuid: isUserExist?.uuid });
+  if (!isUserExist || !profile) {
     throw new ApiError(httpStatus.NOT_FOUND, "User does not exist");
   }
+
+  // Setting default delivery address to the user token
+  const accessTokenData: any = {
+    name: profile.name,
+    status: isUserExist?.status,
+    id: isUserExist?.id,
+    branch: isUserExist?.branch,
+    uuid: isUserExist.uuid,
+    role: isUserExist.role,
+    email,
+  };
+
+  if (isUserExist?.role == ENUM_USER.USER) {
+    const doesExists = await DeliveryAddress.find({
+      userId: new Types.ObjectId(isUserExist.id),
+      isDefault: true,
+    });
+    if (doesExists.length > 0) {
+      const deliveryAddressData = {
+        isAvailable: true,
+        addressData: doesExists[0],
+      };
+      accessTokenData.deliveryAddressData = deliveryAddressData;
+    }
+  }
+
   //generate new token
 
   const newAccessToken = jwtHelpers.createToken(
-    {
-      uuid: isUserExist.uuid,
-      role: isUserExist.role,
-      email,
-      branch: isUserExist?.branch,
-    },
+    accessTokenData,
     config.jwt.secret as Secret,
     config.jwt.expires_in as string
   );

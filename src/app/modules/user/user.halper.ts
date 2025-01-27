@@ -10,6 +10,9 @@ import { IUser } from "./user.interface";
 import { IProfile } from "../profile/profile.interface";
 import { generateUUid } from "./user.utils";
 import { ENUM_PROVIDER } from "../../enums/ProviderEnum";
+import { Customer } from "../customer/customer.model";
+import { CustomerSevices } from "../customer/customer.service";
+import { TCustomer } from "../customer/customer.interface";
 
 export async function handleGoogleLogin(idToken: string, provider: string) {
   const client = new OAuth2Client(config.google_client_id);
@@ -82,6 +85,12 @@ export const userCreator = async (payload: {
       ],
       { session }
     );
+
+    await CustomerSevices.createCustomerIntoDB({
+      name: payload?.name,
+      email: payload?.email,
+      discountCard: uuid,
+    } as TCustomer);
 
     const populaetdUser = { ...user, ...newProfile };
     await session.commitTransaction();

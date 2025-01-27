@@ -4,6 +4,10 @@ import auth from "../../middleware/auth";
 import { ENUM_USER } from "../../enums/EnumUser";
 const router = express.Router();
 
+router.get(
+  "/discounted/items",
+  RawMaterialConsumptionController.getDiscountedItems
+);
 router.post(
   "/",
   auth(
@@ -64,4 +68,5 @@ router.delete(
   ),
   RawMaterialConsumptionController.remove
 );
+
 export const RawMaterialConsumptionRouter = router;
