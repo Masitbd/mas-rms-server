@@ -84,17 +84,35 @@ const getItemsByItemCategoryFromDB = async (query: Record<string, any>) => {
       },
     },
     {
+      $lookup: {
+        from: "images",
+        localField: "images",
+        foreignField: "_id",
+        as: "images",
+      },
+    },
+    {
+      $unwind: {
+        path: "$images",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
       $group: {
         _id: {
           itemGroup: "$itemCategorysDetails.name",
         },
         items: {
           $push: {
-            name: "$itemName",
-            code: "$itemCode",
+            itemName: "$itemName",
+            itemCode: "$itemCode",
             rate: "$rate",
-            details: "$description",
+            description: "$description",
             images: "$images",
+            _id: "$_id",
+            discount: "$discount",
+            isDiscount: "$isDiscount",
+            isVat: "$isVat",
           },
         },
       },

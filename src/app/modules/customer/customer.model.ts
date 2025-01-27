@@ -5,8 +5,8 @@ const customerSchema = new Schema<TCustomer>(
   {
     cid: { type: String, unique: true, required: true },
     name: { type: String, required: true },
-    phone: { type: String, required: true },
-    email: { type: String },
+    phone: { type: String },
+    email: { type: String, lowercase: true },
     address: { type: String },
     dob: { type: String },
     reward: { type: Number },

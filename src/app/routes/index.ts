@@ -15,6 +15,7 @@ import { RawMaterialConsumptionRouter } from "../modules/rawMaterialConsumption/
 import { reportRoutes } from "../modules/reports/reports.routes";
 import { BranchRoutes } from "../modules/branch/branch.routes";
 import { ImageRoutes } from "../modules/image/image.routes";
+import { DeliveryAddressRoutes } from "../modules/deliveryAddresses/deliveryAddresses.routes";
 
 const router = Router();
 
@@ -41,6 +42,10 @@ const moduleRoutes = [
   {
     path: "/image",
     route: ImageRoutes,
+  },
+  {
+    path: "/delivery-address",
+    route: DeliveryAddressRoutes,
   },
 ];
 

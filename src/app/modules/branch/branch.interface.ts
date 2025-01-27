@@ -9,4 +9,6 @@ export type TBranch = {
   address2: string;
   availability: string;
   deliveryLocations: string[];
+  division: string;
+  city: string;
 };

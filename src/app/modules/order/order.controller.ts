@@ -137,6 +137,17 @@ const getDueCollectionHistory = catchAsync(
     });
   }
 );
+
+const getUserOrder = catchAsync(async (req: Request, res: Response) => {
+  console.log(req?.user);
+  const result = await OrderServices.getUserOrder(req?.user?.id);
+  sendResponse(res, {
+    statusCode: 200,
+    message: "User Order History Retrieved Successfully",
+    success: true,
+    data: result,
+  });
+});
 export const OrderControllers = {
   createOrder,
   getAllOrder,
@@ -149,4 +160,5 @@ export const OrderControllers = {
   getSIngleOrderWithPopulate,
   dueCollection,
   getDueCollectionHistory,
+  getUserOrder,
 };

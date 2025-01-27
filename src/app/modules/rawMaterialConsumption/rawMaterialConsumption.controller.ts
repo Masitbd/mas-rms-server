@@ -72,10 +72,20 @@ const getAll = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getDiscountedItems = catchAsync(async (req: Request, res: Response) => {
+  const result = await rawMaterialConsumptionService.fetchDiscountedItems();
+  sendResponse(res, {
+    success: true,
+    statusCode: 200,
+    message: "Successfully deleted",
+    data: result,
+  });
+});
 export const RawMaterialConsumptionController = {
   create,
   update,
   remove,
   getSingle,
   getAll,
+  getDiscountedItems,
 };

@@ -5,6 +5,18 @@ import { ENUM_USER } from "../../enums/EnumUser";
 
 const routes = Router();
 
+routes.get(
+  "/user-orders",
+  auth(
+    ENUM_USER.MANAGER,
+    ENUM_USER.SUPER_ADMIN,
+    ENUM_USER.ADMIN,
+    ENUM_USER.CASHIER,
+    ENUM_USER.ACCOUNTANT,
+    ENUM_USER.USER
+  ),
+  OrderControllers.getUserOrder
+);
 routes.post(
   "/",
   auth(

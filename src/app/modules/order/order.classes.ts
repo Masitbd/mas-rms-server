@@ -1,6 +1,11 @@
 import { ObjectId, Types } from "mongoose";
 import { TTable } from "../table/table.interface";
-import { IItems, IUnregisteredCustomerInfo, TOrder } from "./order.interface";
+import {
+  IItems,
+  IUnregisteredCustomerInfo,
+  ORDER_PLATFORM,
+  TOrder,
+} from "./order.interface";
 import { TCustomer } from "../customer/customer.interface";
 import { IMenuItemConsumption } from "../rawMaterialConsumption/rawMaterialConsumption.interface";
 import { TWaiter } from "../waiter/waiter.interface";
@@ -9,6 +14,7 @@ import { Customer } from "../customer/customer.model";
 import AppError from "../../errors/AppError";
 import { StatusCodes } from "http-status-codes";
 import MenuItemConsumption from "../rawMaterialConsumption/rawMaterialConsumption.model";
+import { TDeliveryAddress } from "../deliveryAddresses/deliveryAddresses.interface";
 
 export class orderDataValidator {
   billNo: string;
@@ -38,7 +44,12 @@ export class orderDataValidator {
   discountCard?: string;
   customer: TCustomer | IUnregisteredCustomerInfo | Types.ObjectId;
   guestType: string;
-  branch: Types.ObjectId;
+  branch?: Types.ObjectId;
+  deliveryMethod?: string;
+  deliveryCharge?: number;
+  deliveryAddress?: TDeliveryAddress;
+  platform?: string;
+  postedBy: Types.ObjectId;
   constructor(parameters: TOrder) {
     this.billNo = parameters?.billNo ?? "";
     this.date = new Date();
@@ -71,7 +82,15 @@ export class orderDataValidator {
     this.discountCard = parameters?.discountCard ?? "";
     this.customer = parameters?.customer;
     this.guestType = parameters?.guestType;
+    this.platform = parameters?.platform;
     this.branch = parameters?.branch;
+    if (parameters?.platform == ORDER_PLATFORM.ONLINE) {
+      this.deliveryCharge = parameters?.deliveryCharge ?? 0;
+      this.deliveryAddress = parameters?.deliveryAddress
+        ?._id as unknown as TDeliveryAddress;
+      this.deliveryMethod = parameters?.deliveryMethod;
+    }
+    this.postedBy = parameters?.postedBy;
   }
 
   async customerData() {
@@ -203,7 +222,6 @@ export class orderDataValidator {
     return serviceCharge;
   }
   async getPostableData() {
-    console.log(this.billNo);
     if (!this.billNo) {
       this.billNo = await generateOrderId(this.branch as unknown as string);
     }
@@ -213,7 +231,8 @@ export class orderDataValidator {
       this?.totalBill +
       this?.serviceCharge +
       this?.totalVat -
-      this?.totalDiscount;
+      this?.totalDiscount +
+      (this?.deliveryCharge ?? 0);
 
     this.due = this.netPayable - this.paid - this.pPayment;
     const cashBack = this.cashReceived - this.paid - this.pPayment;
