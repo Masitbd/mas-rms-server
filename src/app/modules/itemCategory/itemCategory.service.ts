@@ -57,13 +57,23 @@ const updateItemCategoryIntoDB = async (
 //! get items by item category
 
 const getItemsByItemCategoryFromDB = async (query: Record<string, any>) => {
-  const id = query.id;
+  const {id , search}= query;
   const piplelineQuery = [
     ...(id
       ? [
           {
             $match: {
               itemCategory: new mongoose.Types.ObjectId(id),
+            },
+          },
+        ]
+      : []),
+
+    ...(search
+      ? [
+          {
+            $match: {
+              itemName: { $regex: search, $options: "i" }, // Case-insensitive search
             },
           },
         ]
