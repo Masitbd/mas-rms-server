@@ -3,6 +3,7 @@ export type TBranch = {
   name: string;
   phone: string;
   vatNo: string;
+  binNo: string;
   email: string;
   isActive: boolean;
   address1: string;
