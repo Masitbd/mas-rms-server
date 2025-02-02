@@ -125,13 +125,14 @@ const refreshToken = async (token: string): Promise<IRefreshTokenResponse> => {
     throw new ApiError(httpStatus.FORBIDDEN, "Invalid Refresh Token");
   }
 
-  const { email } = verifiedToken;
+  const { email, userId } = verifiedToken;
 
   // checking deleted user's refresh token
 
-  const isUserExist = (await User.isUserExist(
-    email
-  )) as unknown as IUserResponse;
+  // const isUserExist = (await User.isUserExist(
+  //   email
+  // )) as unknown as IUserResponse;
+  const isUserExist = await User.findOne({ uuid: userId });
   // get new profile
   const profile = await Profile.findOne({ uuid: isUserExist?.uuid });
   if (!isUserExist || !profile) {
@@ -146,7 +147,7 @@ const refreshToken = async (token: string): Promise<IRefreshTokenResponse> => {
     branch: isUserExist?.branch,
     uuid: isUserExist.uuid,
     role: isUserExist.role,
-    email,
+    email: isUserExist.email,
   };
 
   if (isUserExist?.role == ENUM_USER.USER) {
@@ -182,13 +183,15 @@ const changePassword = async (
 ): Promise<void> => {
   const { oldPassword, newPassword } = payload;
 
-  const isUserExist = await User.findOne({ id: user?.userId }).select(
+  const isUserExist = await User.findOne({ uuid: user?.uuid }).select(
     "+password"
   );
 
   if (!isUserExist) {
     throw new ApiError(httpStatus.NOT_FOUND, "User does not exist");
   }
+
+  console.log(isUserExist);
 
   // checking old password
   if (
@@ -204,14 +207,17 @@ const changePassword = async (
   isUserExist.save();
 };
 
-const forgotPass = async (payload: { uuid: string }) => {
-  const user = await User.findOne({ uuid: payload.uuid }, { uuid: 1, role: 1 });
+const forgotPass = async (payload: { email: string }) => {
+  const user = await User.findOne(
+    { email: payload.email },
+    { uuid: 1, role: 1 }
+  );
 
   if (!user) {
     throw new ApiError(httpStatus.BAD_REQUEST, "User does not exist!");
   }
 
-  const profile = await Profile.findOne({ uuid: payload.uuid });
+  const profile = await Profile.findOne({ uuid: user.uuid });
 
   if (!profile) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Profile not found!");
@@ -359,6 +365,7 @@ const resetPassword = async (payload: {
 
 //   return "User Has been successfully Activated";
 // };
+
 export const AuthService = {
   loginUser,
   refreshToken,
