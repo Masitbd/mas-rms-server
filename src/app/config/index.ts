@@ -21,8 +21,8 @@ export default {
   default_user_pass: process.env.DEFAULT_USER_PASS,
   bycrypt_salt_rounds: process.env.BCRYPT_SALT_ROUNDS,
   resetlink: process.env.RESET_LINK,
-  email: "fk",
-  appPass: "fidj",
+  email: process.env.EMAIL,
+  appPass: process.env.APP_PASS,
   super_admin_email: process.env.SUPER_ADMIN_EMAIL,
   google_client_id: process.env.GOOGLE_CLIENT_ID,
 };

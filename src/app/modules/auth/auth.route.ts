@@ -1,6 +1,8 @@
 import express from "express";
 
 import { AuthController } from "./auth.controller";
+import auth from "../../middleware/auth";
+import { ENUM_USER } from "../../enums/EnumUser";
 
 const router = express.Router();
 
@@ -18,11 +20,14 @@ router.post(
 
 router.post(
   "/change-password",
-  // auth(
-  //   ENUM_USER_PEMISSION.SUPER_ADMIN,
-  //   ENUM_USER_PEMISSION.ADMIN,
-  //   ENUM_USER_PEMISSION.USER
-  // ),
+  auth(
+    ENUM_USER.USER,
+    ENUM_USER.ADMIN,
+    ENUM_USER.SUPER_ADMIN,
+    ENUM_USER.CASHIER,
+    ENUM_USER.ACCOUNTANT,
+    ENUM_USER.MANAGER
+  ),
   AuthController.changePassword
 );
 router.post("/forgot-password", AuthController.forgotPass);
