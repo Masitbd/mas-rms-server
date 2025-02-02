@@ -7,6 +7,7 @@ const branchSchema = new Schema<TBranch>(
     name: { type: String, required: true, unique: true },
     phone: { type: String, required: true },
     vatNo: { type: String },
+    binNo: { type: String },
     email: { type: String },
     isActive: { type: Boolean, default: true },
     address1: { type: String, required: true },
