@@ -148,6 +148,78 @@ const getUserOrder = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
+const postCancellationRequest = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await OrderServices.postCancellationRequest(
+      req.user,
+      req.body
+    );
+    sendResponse(res, {
+      statusCode: 200,
+      message: "Cancellation Request Posted Successfully",
+      success: true,
+      data: result,
+    });
+  }
+);
+
+const getSingleCancellation = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await OrderServices.getSingleCancellation(req.params?.id);
+    sendResponse(res, {
+      statusCode: 200,
+      message: "Cancellation Request Retrieved Successfully",
+      success: true,
+      data: result,
+    });
+  }
+);
+
+const getAllCancellation = catchAsync(async (req: Request, res: Response) => {
+  const result = await OrderServices.getAllCancellationRequest(
+    req.user,
+    req.query
+  );
+  sendResponse(res, {
+    statusCode: 200,
+    message: "Cancellations Retrieved Successfully",
+    success: true,
+    data: result,
+  });
+});
+
+const approveCancellationRequest = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await OrderServices.approveCancellationRequest(
+      req?.params?.id,
+      req.user,
+      req.body
+    );
+    sendResponse(res, {
+      statusCode: 200,
+      message: "Cancellations Approved ",
+      success: true,
+      data: result,
+    });
+  }
+);
+
+const rejectCancellationRequest = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await OrderServices.rejectCancellationRequest(
+      req?.params?.id,
+      req.user,
+      req.body
+    );
+    sendResponse(res, {
+      statusCode: 200,
+      message: "Cancellations Rejected",
+      success: true,
+      data: result,
+    });
+  }
+);
 export const OrderControllers = {
   createOrder,
   getAllOrder,
@@ -161,4 +233,9 @@ export const OrderControllers = {
   dueCollection,
   getDueCollectionHistory,
   getUserOrder,
+  postCancellationRequest,
+  getSingleCancellation,
+  getAllCancellation,
+  approveCancellationRequest,
+  rejectCancellationRequest,
 };

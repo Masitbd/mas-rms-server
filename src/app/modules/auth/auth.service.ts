@@ -191,8 +191,6 @@ const changePassword = async (
     throw new ApiError(httpStatus.NOT_FOUND, "User does not exist");
   }
 
-  console.log(isUserExist);
-
   // checking old password
   if (
     isUserExist.password &&

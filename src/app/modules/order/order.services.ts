@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import mongoose, { Query, Types, UpdateOneModel } from "mongoose";
+import mongoose, { Mongoose, Query, Types, UpdateOneModel } from "mongoose";
 import { cacheServer } from "../../../app";
 import { generateOrderId } from "../../../utils/generateUniqueId";
 import QueryBuilder from "../../builder/QueryBuilder";
@@ -41,6 +41,9 @@ import { ENUM_ORDER_STATUS } from "../../enums/EnumOrderStatus";
 import { DueCollection } from "../dewCollection/dueCollection.model";
 import { Branch } from "../branch/branch.model";
 import { Customer } from "../customer/customer.model";
+import { ICancellationRequest } from "../orderCancellationRequest/orderCancellation.interface";
+import { OrderCancellation } from "../orderCancellationRequest/orderCancellation.model";
+import { ENUM_CANCELLATION_STATUS } from "../../enums/EnumCalcellationStatus";
 
 const createOrderIntoDB = async (payload: TOrder, loggedInuser: JwtPayload) => {
   const session = await mongoose.startSession();
@@ -305,6 +308,9 @@ const getSIngleOrderWithPopulate = async (id: string) => {
     {
       path: "branch",
     },
+    {
+      path: "deliveryAddress",
+    },
   ]);
   return result;
 };
@@ -397,6 +403,179 @@ const getUserOrder = async (userId: string) => {
 
   return result;
 };
+
+const postCancellationRequest = async (
+  loggedInUser: JwtPayload,
+  payload: ICancellationRequest
+) => {
+  const doesCancellationRequestExists = await OrderCancellation.find({
+    orderId: new Types.ObjectId(payload.orderId),
+  });
+  if (doesCancellationRequestExists.length) {
+    throw new AppError(
+      StatusCodes.CONFLICT,
+      "Cancellation request already exists"
+    );
+  }
+  const doesExists = await Order.findById(payload.orderId);
+
+  if (!doesExists) {
+    throw new AppError(StatusCodes.NOT_FOUND, "NO order found");
+  }
+
+  if (doesExists.status === ORDER_STATUS.VOID) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Order is already cancelled");
+  }
+
+  if (doesExists.status === ORDER_STATUS.POSTED) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Order is already posted");
+  }
+  const data: ICancellationRequest = {
+    orderId: payload.orderId,
+    status: ENUM_CANCELLATION_STATUS.PENDING,
+    reason: payload.reason,
+    postedBy: loggedInUser.id,
+    ...(payload?.reason && payload?.description && payload?.reason == "other"
+      ? { description: payload?.description }
+      : {}),
+    ...(payload?.refundOption ? { refundOption: payload?.refundOption } : {}),
+    branch: doesExists.branch,
+  };
+
+  return await OrderCancellation.create(data);
+};
+
+const getAllCancellationRequest = async (
+  loggedInUser: JwtPayload,
+  query: Record<string, any>
+) => {
+  let oderQuery;
+  if (
+    loggedInUser?.role !== ENUM_USER.SUPER_ADMIN ||
+    loggedInUser.role !== ENUM_USER.ADMIN
+  ) {
+    oderQuery = new QueryBuilder(
+      OrderCancellation.find({})
+        .populate("orderId")
+        .populate("orderId.customer"),
+      query
+    )
+      .sort()
+      .paginate()
+      .filter();
+  }
+
+  if (loggedInUser?.role == ENUM_USER.USER) {
+    console.log("user");
+    oderQuery = new QueryBuilder(
+      OrderCancellation.find({
+        postedBy: new Types.ObjectId(loggedInUser?.id),
+      }).populate("orderId"),
+      query
+    )
+      .sort()
+      .paginate()
+      .search(["billNo"])
+      .filter();
+  }
+  if (
+    loggedInUser?.role !== ENUM_USER.SUPER_ADMIN &&
+    loggedInUser.role !== ENUM_USER.ADMIN &&
+    loggedInUser.role !== ENUM_USER.USER
+  ) {
+    oderQuery = new QueryBuilder(
+      OrderCancellation.find({
+        branch: new Types.ObjectId(loggedInUser?.branch),
+      }).populate("orderId"),
+      query
+    )
+      .sort()
+      .paginate()
+      .search(["billNo"])
+      .filter();
+  }
+
+  const result = await oderQuery?.modelQuery;
+  const meta = await oderQuery?.countTotal();
+
+  return {
+    meta,
+    result,
+  };
+};
+
+const getSingleCancellation = async (orderId: string) => {
+  return await OrderCancellation.find({
+    orderId: new Types.ObjectId(orderId),
+  })
+    .populate("orderId")
+    .populate("approvedBy")
+    .populate("postedBy");
+};
+
+const approveCancellationRequest = async (
+  id: string,
+  loggedInUser: JwtPayload,
+  payload: { adminNote: string }
+) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const cancellationRequest = await OrderCancellation.findByIdAndUpdate(
+      id,
+      {
+        status: ENUM_CANCELLATION_STATUS.APPROVED,
+        approvedBy: loggedInUser?.id,
+        ...payload,
+      },
+      { new: true, session }
+    );
+
+    console.log(cancellationRequest);
+
+    if (
+      cancellationRequest &&
+      cancellationRequest.status === ENUM_CANCELLATION_STATUS.APPROVED
+    ) {
+      const order = await Order.findByIdAndUpdate(
+        cancellationRequest.orderId,
+        { status: ORDER_STATUS.VOID, approvedBy: loggedInUser.id },
+        { new: true, session }
+      );
+      if (!order) {
+        throw new AppError(
+          StatusCodes.INTERNAL_SERVER_ERROR,
+          "Failed to update order status"
+        );
+      }
+    }
+    await session.commitTransaction();
+    return cancellationRequest;
+  } catch (error) {
+    await session.abortTransaction();
+    throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, error as string);
+  } finally {
+    session.endSession();
+  }
+};
+
+const rejectCancellationRequest = async (
+  id: string,
+  loggedInUser: JwtPayload,
+  payload: { adminNote: string }
+) => {
+  return await OrderCancellation.findByIdAndUpdate(
+    id,
+    {
+      status: ENUM_CANCELLATION_STATUS.REJECTED,
+      approvedBy: loggedInUser.id,
+      ...payload,
+    },
+    { new: true }
+  );
+};
+
 export const OrderServices = {
   createOrderIntoDB,
   getAllOderFromDB,
@@ -410,4 +589,9 @@ export const OrderServices = {
   dueCollection,
   getDueCollectionHistory,
   getUserOrder,
+  postCancellationRequest,
+  getAllCancellationRequest,
+  getSingleCancellation,
+  approveCancellationRequest,
+  rejectCancellationRequest,
 };

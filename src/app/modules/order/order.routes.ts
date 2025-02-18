@@ -94,4 +94,54 @@ routes.get(
   OrderControllers.getDueCollectionHistory
 );
 
+routes.post(
+  "/cancellation/new",
+  auth(
+    ENUM_USER.MANAGER,
+    ENUM_USER.SUPER_ADMIN,
+    ENUM_USER.ADMIN,
+    ENUM_USER.CASHIER,
+    ENUM_USER.ACCOUNTANT,
+    ENUM_USER.USER
+  ),
+  OrderControllers.postCancellationRequest
+);
+
+routes.get("/cancellation/single/:id", OrderControllers.getSingleCancellation);
+routes.get(
+  "/cancellation/all",
+  auth(
+    ENUM_USER.MANAGER,
+    ENUM_USER.SUPER_ADMIN,
+    ENUM_USER.ADMIN,
+    ENUM_USER.CASHIER,
+    ENUM_USER.ACCOUNTANT,
+    ENUM_USER.USER
+  ),
+  OrderControllers.getAllCancellation
+);
+
+routes.patch(
+  "/cancellation/approve/:id",
+  auth(
+    ENUM_USER.MANAGER,
+    ENUM_USER.SUPER_ADMIN,
+    ENUM_USER.ADMIN,
+    ENUM_USER.CASHIER,
+    ENUM_USER.ACCOUNTANT
+  ),
+  OrderControllers.approveCancellationRequest
+);
+
+routes.patch(
+  "/cancellation/reject/:id",
+  auth(
+    ENUM_USER.MANAGER,
+    ENUM_USER.SUPER_ADMIN,
+    ENUM_USER.ADMIN,
+    ENUM_USER.CASHIER,
+    ENUM_USER.ACCOUNTANT
+  ),
+  OrderControllers.rejectCancellationRequest
+);
 export const OrderRoutes = routes;
