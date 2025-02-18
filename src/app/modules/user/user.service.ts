@@ -163,15 +163,24 @@ const getALluser = async (
 
 const patchUserProfile = async (
   uuid: string,
-  data: Partial<IProfile & { branch: string }>
+  data: Partial<IProfile & { branch: string; role: string }>,
+  loggedInUser: JwtPayload
 ) => {
-  const { branch, ...rest } = data;
+  const { branch, role, ...rest } = data;
   if (branch) {
     await User.findOneAndUpdate({ uuid: uuid }, { branch: branch });
   }
 
   if (rest?.email) {
     await User.findOneAndUpdate({ uuid: uuid }, { email: rest?.email });
+  }
+  if (role) {
+    if (
+      loggedInUser?.role == ENUM_USER.SUPER_ADMIN ||
+      (loggedInUser?.role == ENUM_USER.ADMIN && role !== ENUM_USER.SUPER_ADMIN)
+    ) {
+      await User.findOneAndUpdate({ uuid: uuid }, { role: role });
+    }
   }
   const result = await Profile.findOneAndUpdate({ uuid: uuid }, rest, {
     new: true,

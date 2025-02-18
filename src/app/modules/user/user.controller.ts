@@ -71,7 +71,8 @@ const updateUserProfile: RequestHandler = catchAsync(
   async (req: Request, res: Response) => {
     const result = await UserService.patchUserProfile(
       req.params.uuid,
-      req.body
+      req.body,
+      req.user
     );
 
     sendResponse(res, {

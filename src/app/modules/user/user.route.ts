@@ -21,7 +21,18 @@ router.get(
   auth(ENUM_USER.SUPER_ADMIN, ENUM_USER.ADMIN, ENUM_USER.MANAGER),
   UserController.getAllUser
 );
-router.patch("/profile/:uuid", UserController.updateUserProfile);
+router.patch(
+  "/profile/:uuid",
+  auth(
+    ENUM_USER.SUPER_ADMIN,
+    ENUM_USER.ADMIN,
+    ENUM_USER.MANAGER,
+    ENUM_USER.USER,
+    ENUM_USER.CASHIER,
+    ENUM_USER.ACCOUNTANT
+  ),
+  UserController.updateUserProfile
+);
 
 router.patch(
   "/change-password-admin/:id",
