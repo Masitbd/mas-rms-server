@@ -184,8 +184,9 @@ export const generateOrderId = async (branchId: string) => {
   if (lastOrderId) {
     if (lastOrderId.substring(1, 5) !== yearAndMonth) {
       currentId = "0";
+    } else {
+      currentId = lastOrderId.substring(7);
     }
-    currentId = lastOrderId.substring(7);
   }
 
   let incrementId = (Number(currentId) + 1).toString().padStart(3, "0");
