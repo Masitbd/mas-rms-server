@@ -189,7 +189,7 @@ export const generateOrderId = async (branchId: string) => {
     }
   }
 
-  let incrementId = (Number(currentId) + 1).toString().padStart(3, "0");
+  let incrementId = (Number(currentId) + 1).toString().padStart(4, "0");
 
   incrementId = `R${year}${month}${branchCode}${incrementId}`;
 

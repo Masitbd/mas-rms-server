@@ -22,7 +22,6 @@ app.use("/api/v1", router);
 app.get("/", (req: Request, res: Response) => {
   res.send("Hello from rms");
 });
-
 // ! Global Error handler
 app.use(globalErrorHandler);
 //Not Found

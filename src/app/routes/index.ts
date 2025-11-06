@@ -16,6 +16,7 @@ import { reportRoutes } from "../modules/reports/reports.routes";
 import { BranchRoutes } from "../modules/branch/branch.routes";
 import { ImageRoutes } from "../modules/image/image.routes";
 import { DeliveryAddressRoutes } from "../modules/deliveryAddresses/deliveryAddresses.routes";
+import { CashMemoTypeRoutes } from "../modules/cashMemoType/cashMemoType.route";
 
 const router = Router();
 
@@ -46,6 +47,10 @@ const moduleRoutes = [
   {
     path: "/delivery-address",
     route: DeliveryAddressRoutes,
+  },
+  {
+    path: "/cash-memo-type",
+    route: CashMemoTypeRoutes,
   },
 ];
 
