@@ -22,7 +22,7 @@ export const insertSuperAdmin = async () => {
     address: "super-admin",
     age: "30",
     dateOfBirth: new Date("1990-01-01"),
-    email: "rms@SuperAdmin.com",
+    email: config?.super_admin_email ?? "rms@SuperAdmin.com",
     fatherName: "SuperAdmin",
     gender: "Male",
     motherName: "SuperAdmin",
