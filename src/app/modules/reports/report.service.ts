@@ -85,7 +85,7 @@ const getDailyStatementFromDB = async (
                 $cond: {
                   if: {
                     $and: [
-                      { $gte: [{ $hour: "$createdAt" }, 18] },
+                      { $gte: [{ $hour: "$createdAt" }, 17] },
                       { $lt: [{ $hour: "$createdAt" }, 23] },
                     ],
                   },
@@ -105,7 +105,7 @@ const getDailyStatementFromDB = async (
             pMode: "$paymentMode",
             totalBill: "$totalBill",
             totalVat: "$totalVat",
-            totalScharge: "$tSChargse",
+            totalScharge: "$serviceCharge",
             discount: "$totalDiscount",
             pPayment: "$pPayment",
             metPayable: "$netPayable",
@@ -179,7 +179,6 @@ const getDailySalesStatementSummeryFromDB = async (
     branchInfo = await Branch.findById(branch);
   }
 
-
   const queryParams: PipelineStage[] = [
     {
       $match: {
@@ -226,7 +225,7 @@ const getDailySalesStatementSummeryFromDB = async (
                     totalVat: { $sum: "$totalVat" },
                     totalGuest: { $sum: "$guest" },
                     totalDiscount: { $sum: "$totalDiscount" },
-                    totalScharge: { $sum: "$tSChargse" },
+                    totalScharge: { $sum: "$serviceCharge" },
                     totalPayable: { $sum: "$netPayable" },
                     totalDue: { $sum: "$due" },
                     totalPaid: { $sum: "$paid" },
@@ -250,7 +249,7 @@ const getDailySalesStatementSummeryFromDB = async (
                     grandTotalVat: { $sum: "$totalVat" },
                     grandTotalGuest: { $sum: "$guest" },
                     grandTotalDiscount: { $sum: "$totalDiscount" },
-                    grandTotalScharge: { $sum: "$tSChargse" },
+                    grandTotalScharge: { $sum: "$serviceCharge" },
                     grandTotalPayable: { $sum: "$netPayable" },
                     grandTotalDue: { $sum: "$due" },
                     grandTotalPaid: { $sum: "$paid" },
@@ -275,7 +274,7 @@ const getDailySalesStatementSummeryFromDB = async (
                     totalVat: { $sum: "$totalVat" },
                     totalGuest: { $sum: "$guest" },
                     totalDiscount: { $sum: "$totalDiscount" },
-                    totalScharge: { $sum: "$tSChargse" },
+                    totalScharge: { $sum: "$serviceCharge" },
                     totalPayable: { $sum: "$netPayable" },
                     totalDue: { $sum: "$due" },
                     totalPaid: { $sum: "$paid" },
@@ -299,7 +298,7 @@ const getDailySalesStatementSummeryFromDB = async (
                     grandTotalVat: { $sum: "$totalVat" },
                     grandTotalGuest: { $sum: "$guest" },
                     grandTotalDiscount: { $sum: "$totalDiscount" },
-                    grandTotalScharge: { $sum: "$tSChargse" },
+                    grandTotalScharge: { $sum: "$serviceCharge" },
                     grandTotalPayable: { $sum: "$netPayable" },
                     grandTotalDue: { $sum: "$due" },
                     grandTotalPaid: { $sum: "$paid" },
@@ -345,7 +344,6 @@ const getItemWiseSalesSatetementFromDB = async (
   const branch = user?.branch || query.branch;
 
   let branchInfo = branch ? await Branch.findById(branch) : null;
-
 
   const pipelineAggregate: PipelineStage[] = [
     {
@@ -485,7 +483,6 @@ const getItemWiseSalesSatetementFromDB = async (
 
   const result = await Order.aggregate(pipelineAggregate);
 
-
   if (!branchInfo && branch) {
     branchInfo = await Branch.findById(branch);
   }
@@ -604,7 +601,6 @@ const getMenuGroupWithItemsFromDB = async (
   //   },
   // ];
 
-
   const query = [
     {
       $unwind: {
@@ -714,10 +710,8 @@ const getMenuGroupWithItemsFromDB = async (
     },
   ];
 
-
   const result = await MenuItemConsumption.aggregate(query);
   return { branchInfo, result };
-
 };
 
 // menu item and coinsumptionconst
@@ -875,7 +869,6 @@ const getMenuItemsAndConsumptionFromDB = async (
       },
     },
   ];
-
 
   const result = await MenuItemConsumption.aggregate(query);
   return { branchInfo, result };
@@ -1074,7 +1067,6 @@ const getRawMaterialConsumptionSalesFromDB = async (
   const branchInfo = await Branch.findById(branch);
 
   const pipelineAggregate = [
-
     {
       $match: {
         createdAt: {
