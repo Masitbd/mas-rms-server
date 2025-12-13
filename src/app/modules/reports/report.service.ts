@@ -268,6 +268,7 @@ const getDailySalesStatementSummeryFromDB = async (
                           date: "$createdAt",
                         },
                       },
+                      branch: "$branch",
                     },
                     branchName: { $first: "$branchDetails.name" },
                     totalBill: { $sum: "$totalBill" },
