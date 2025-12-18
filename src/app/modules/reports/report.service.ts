@@ -1,9 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import mongoose, { mongo, PipelineStage } from "mongoose";
+import mongoose, { PipelineStage } from "mongoose";
 import { Order } from "../order/order.model";
 
 import MenuItemConsumption from "../rawMaterialConsumption/rawMaterialConsumption.model";
 import { Branch } from "../branch/branch.model";
+import { DateFormatter } from "../../../utils/dateProvider";
+import { itemWiseSalesStatementPipelineProvider } from "./report.helper";
+import { ENUM_USER } from "../../enums/EnumUser";
+import AppError from "../../errors/AppError";
+import { StatusCodes } from "http-status-codes";
 
 const getDailyStatementFromDB = async (
   payload: Record<string, any>,
@@ -489,6 +494,51 @@ const getItemWiseSalesSatetementFromDB = async (
   }
 
   return { branchInfo, result };
+};
+
+const getItemWiseSalesStatementFormDB_v2 = async (
+  query: Record<string, any>,
+  user: any
+) => {
+  const { endDate, startDate } = DateFormatter(
+    query?.startDate,
+    query?.endDate
+  );
+  const branch = user?.branch || query.branch;
+
+  let branchInfo = branch ? await Branch.findById(branch) : null;
+  if (!branch) {
+    if (user?.role === ENUM_USER.ADMIN || user.role === ENUM_USER.SUPER_ADMIN) {
+      const branches = await Branch.find();
+      const promises = branches.map(async (b) => {
+        const result = await Order.aggregate(
+          itemWiseSalesStatementPipelineProvider({
+            branch: b?._id?.toString(),
+            startDate,
+            endDate,
+            user,
+          })
+        );
+        return {
+          branchInfo: b,
+          result,
+        };
+      });
+      const result = await Promise.all(promises);
+      return result;
+    } else {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Branch not provided");
+    }
+  }
+  const result = await Order.aggregate(
+    itemWiseSalesStatementPipelineProvider({ branch, startDate, endDate, user })
+  );
+
+  if (!branchInfo && branch) {
+    branchInfo = await Branch.findById(branch);
+  }
+
+  return [{ branchInfo, result }];
 };
 
 const getMenuGroupWithItemsFromDB = async (
@@ -1778,4 +1828,5 @@ export const reportServices = {
   getWaiteWiseSalesFromDB,
   getWaiterWiseSalesStatementFromDB,
   getDashboardStatisticsDataFromDB,
+  getItemWiseSalesStatementFormDB_v2,
 };

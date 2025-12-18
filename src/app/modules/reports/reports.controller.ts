@@ -50,6 +50,21 @@ const getItemWiseSalesSatement = catchAsync(
   }
 );
 
+const getItemWiseSalesStatement_v2 = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await reportServices.getItemWiseSalesStatementFormDB_v2(
+      req.query,
+      req.user
+    );
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: "Item wises sales Statement retrieved successfully",
+      data: result,
+    });
+  }
+);
+
 const getMenuGroupItems = catchAsync(async (req: Request, res: Response) => {
   const result = await reportServices.getMenuGroupWithItemsFromDB(
     req.query,
@@ -180,4 +195,5 @@ export const reportControllers = {
   getWaiterWiseSales,
   getWaiterWiseSalesStatement,
   getDashboardStatisticsData,
+  getItemWiseSalesStatement_v2,
 };

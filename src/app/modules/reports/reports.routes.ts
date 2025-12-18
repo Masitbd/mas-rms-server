@@ -15,6 +15,12 @@ routes.get(
   auth(),
   reportControllers.getItemWiseSalesSatement
 );
+
+routes.get(
+  "/itemwise-sales-v2",
+  auth(),
+  reportControllers.getItemWiseSalesStatement_v2
+);
 routes.get("/menugroup-items", auth(), reportControllers.getMenuGroupItems);
 routes.get(
   "/menuitem-consumption",
