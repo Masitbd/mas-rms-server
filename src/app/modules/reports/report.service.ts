@@ -12,7 +12,7 @@ import { StatusCodes } from "http-status-codes";
 
 const getDailyStatementFromDB = async (
   payload: Record<string, any>,
-  user: any
+  user: any,
 ) => {
   // Default to current date if no startDate and endDate are provided
   const startDate = payload.startDate
@@ -168,7 +168,7 @@ const getDailyStatementFromDB = async (
 
 const getDailySalesStatementSummeryFromDB = async (
   query: Record<string, any>,
-  user: any
+  user: any,
 ) => {
   const startDate = new Date(query.startDate);
   const endDate = new Date(query.endDate);
@@ -340,7 +340,7 @@ const getDailySalesStatementSummeryFromDB = async (
 
 const getItemWiseSalesSatetementFromDB = async (
   query: Record<string, any>,
-  user: any
+  user: any,
 ) => {
   const startDate = new Date(query.startDate);
   const endDate = new Date(query.endDate);
@@ -498,11 +498,11 @@ const getItemWiseSalesSatetementFromDB = async (
 
 const getItemWiseSalesStatementFormDB_v2 = async (
   query: Record<string, any>,
-  user: any
+  user: any,
 ) => {
   const { endDate, startDate } = DateFormatter(
     query?.startDate,
-    query?.endDate
+    query?.endDate,
   );
   const branch = user?.branch || query.branch;
 
@@ -517,7 +517,7 @@ const getItemWiseSalesStatementFormDB_v2 = async (
             startDate,
             endDate,
             user,
-          })
+          }),
         );
         return {
           branchInfo: b,
@@ -531,7 +531,12 @@ const getItemWiseSalesStatementFormDB_v2 = async (
     }
   }
   const result = await Order.aggregate(
-    itemWiseSalesStatementPipelineProvider({ branch, startDate, endDate, user })
+    itemWiseSalesStatementPipelineProvider({
+      branch,
+      startDate,
+      endDate,
+      user,
+    }),
   );
 
   if (!branchInfo && branch) {
@@ -541,9 +546,186 @@ const getItemWiseSalesStatementFormDB_v2 = async (
   return [{ branchInfo, result }];
 };
 
+const getRawMaterialConsumptionServiceFromDB = async (
+  query: Record<string, any>,
+  user: any,
+) => {
+  const { startDate, endDate } = DateFormatter(
+    query?.startDate,
+    query?.endDate,
+  );
+  const branch = user?.branch || query.branch;
+
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        createdAt: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+        ...(branch && { branch: new mongoose.Types.ObjectId(branch) }),
+      },
+    },
+    {
+      $unwind: {
+        path: "$items",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "menuitemconsumptions",
+        localField: "items.item",
+        foreignField: "_id",
+        as: "itemDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$itemDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $unwind: {
+        path: "$itemDetails.consumptions",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "rawmaterials",
+        localField: "itemDetails.consumptions.item",
+        foreignField: "_id",
+        as: "rawMaterial",
+      },
+    },
+    {
+      $unwind: {
+        path: "$rawMaterial",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $group: {
+        _id: {
+          branch: "$branch",
+          rawMaterialId: "$rawMaterial._id",
+          materialName: "$rawMaterial.materialName",
+          unit: "$rawMaterial.baseUnit",
+          rate: "$rawMaterial.rate",
+          conversion: "$rawMaterial.conversion",
+        },
+        totalQuantity: {
+          $sum: {
+            $multiply: [
+              { $ifNull: ["$items.qty", 0] },
+              { $ifNull: ["$itemDetails.consumptions.qty", 0] },
+            ],
+          },
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$_id.branch",
+        materials: {
+          $push: {
+            materialName: "$_id.materialName",
+            unit: "$_id.unit",
+            rate: "$_id.rate",
+            conversion: "$_id.conversion",
+            unitRate: {
+              $cond: {
+                if: { $gt: [{ $ifNull: ["$_id.conversion", 0] }, 0] },
+                then: {
+                  $divide: [
+                    { $ifNull: ["$_id.rate", 0] },
+                    "$_id.conversion",
+                  ],
+                },
+                else: { $ifNull: ["$_id.rate", 0] },
+              },
+            },
+            totalQuantity: "$totalQuantity",
+            totalCost: {
+              $multiply: [
+                "$totalQuantity",
+                {
+                  $cond: {
+                    if: { $gt: [{ $ifNull: ["$_id.conversion", 0] }, 0] },
+                    then: {
+                      $divide: [
+                        { $ifNull: ["$_id.rate", 0] },
+                        "$_id.conversion",
+                      ],
+                    },
+                    else: { $ifNull: ["$_id.rate", 0] },
+                  },
+                },
+              ],
+            },
+          },
+        },
+        branchGrandTotal: {
+          $sum: {
+            $multiply: [
+              "$totalQuantity",
+              {
+                $cond: {
+                  if: { $gt: [{ $ifNull: ["$_id.conversion", 0] }, 0] },
+                  then: {
+                    $divide: [
+                      { $ifNull: ["$_id.rate", 0] },
+                      "$_id.conversion",
+                    ],
+                  },
+                  else: { $ifNull: ["$_id.rate", 0] },
+                },
+              },
+            ],
+          },
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "branches",
+        localField: "_id",
+        foreignField: "_id",
+        as: "branchInfo",
+      },
+    },
+    {
+      $unwind: {
+        path: "$branchInfo",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        branchName: { $ifNull: ["$branchInfo.name", "Unknown Branch"] },
+        branchId: "$_id",
+        materials: {
+          $filter: {
+            input: "$materials",
+            as: "m",
+            cond: { $ne: ["$$m.materialName", null] },
+          },
+        },
+        branchGrandTotal: 1,
+      },
+    },
+  ];
+
+  const result = await Order.aggregate(pipeline);
+  return result;
+};
+
 const getMenuGroupWithItemsFromDB = async (
   payload: Record<string, any>,
-  user: any
+  user: any,
 ) => {
   const branch = user?.branch || payload.branch;
 
@@ -768,7 +950,7 @@ const getMenuGroupWithItemsFromDB = async (
 // menu item and coinsumptionconst
 const getMenuItemsAndConsumptionFromDB = async (
   payload: Record<string, any>,
-  user: any
+  user: any,
 ) => {
   const branch = user?.branch || payload.branch;
   const branchInfo = branch ? await Branch.findById(branch) : null;
@@ -865,6 +1047,7 @@ const getMenuItemsAndConsumptionFromDB = async (
           itemName: "$itemName",
           itemCode: "$itemCode",
           rate: "$rate",
+          cookingTime: "$cookingTime",
           menuGroup: "$menuGroupDetails.name",
           itemGroup: "$itemCategorysDetails.name",
           branch: "$branchDetails.name",
@@ -875,6 +1058,17 @@ const getMenuItemsAndConsumptionFromDB = async (
             qty: "$consumptions.qty",
             materialName: "$rawMaterialsDetails.materialName",
             baseUnit: "$rawMaterialsDetails.baseUnit",
+          },
+        },
+      },
+    },
+    {
+      $addFields: {
+        consumptions: {
+          $filter: {
+            input: "$consumptions",
+            as: "c",
+            cond: { $ne: ["$$c.materialName", null] },
           },
         },
       },
@@ -891,6 +1085,7 @@ const getMenuItemsAndConsumptionFromDB = async (
             name: "$_id.itemName",
             code: "$_id.itemCode",
             rate: "$_id.rate",
+            cookingTime: "$_id.cookingTime",
             consumptions: "$consumptions",
           },
         },
@@ -924,10 +1119,11 @@ const getMenuItemsAndConsumptionFromDB = async (
   const result = await MenuItemConsumption.aggregate(query);
   return { branchInfo, result };
 };
+
 //
 const getMenuItemsAndCostingFromDB = async (
   payload: Record<string, any>,
-  user: any
+  user: any,
 ) => {
   const branch = user?.branch || payload.branch;
   const branchInfo = await Branch.findById(branch);
@@ -1024,6 +1220,7 @@ const getMenuItemsAndCostingFromDB = async (
           itemName: "$itemName",
           itemCode: "$itemCode",
           rate: "$rate",
+          cookingTime: "$cookingTime",
           branch: "$branchDetails.name",
         },
         consumptions: {
@@ -1033,20 +1230,66 @@ const getMenuItemsAndCostingFromDB = async (
             materialName: "$rawMaterialsDetails.materialName",
             baseUnit: "$rawMaterialsDetails.baseUnit",
             price: {
-              $multiply: ["$rawMaterialsDetails.rate", "$consumptions.qty"],
+              $multiply: [
+                { $ifNull: ["$consumptions.qty", 0] },
+                {
+                  $cond: {
+                    if: { $gt: [{ $ifNull: ["$rawMaterialsDetails.conversion", 0] }, 0] },
+                    then: {
+                      $divide: [
+                        { $ifNull: ["$rawMaterialsDetails.rate", 0] },
+                        "$rawMaterialsDetails.conversion",
+                      ],
+                    },
+                    else: { $ifNull: ["$rawMaterialsDetails.rate", 0] },
+                  },
+                },
+              ],
             },
           },
         },
         rate: { $first: "$rate" },
         totalCosting: {
           $sum: {
-            $multiply: ["$rawMaterialsDetails.rate", "$consumptions.qty"],
+            $multiply: [
+              { $ifNull: ["$consumptions.qty", 0] },
+              {
+                $cond: {
+                  if: { $gt: [{ $ifNull: ["$rawMaterialsDetails.conversion", 0] }, 0] },
+                  then: {
+                    $divide: [
+                      { $ifNull: ["$rawMaterialsDetails.rate", 0] },
+                      "$rawMaterialsDetails.conversion",
+                    ],
+                  },
+                  else: { $ifNull: ["$rawMaterialsDetails.rate", 0] },
+                },
+              },
+            ],
           },
         },
-        totalConsumptionCount: { $sum: 1 },
+        totalConsumptionCount: {
+          $sum: {
+            $cond: [
+              { $ifNull: ["$rawMaterialsDetails._id", false] },
+              1,
+              0,
+            ],
+          },
+        },
       },
     },
-
+    {
+      $addFields: {
+        consumptions: {
+          $filter: {
+            input: "$consumptions",
+            as: "c",
+            cond: { $ne: ["$$c.materialName", null] },
+          },
+        },
+      },
+    },
     {
       $group: {
         _id: {
@@ -1059,6 +1302,7 @@ const getMenuItemsAndCostingFromDB = async (
             name: "$_id.itemName",
             code: "$_id.itemCode",
             rate: "$_id.rate",
+            cookingTime: "$_id.cookingTime",
             consumptions: "$consumptions",
             totalCosting: "$totalCosting",
           },
@@ -1089,7 +1333,6 @@ const getMenuItemsAndCostingFromDB = async (
         itemGroups: 1,
         menuGroupTotalConsumption: 1,
         menuGroupTotalCosting: 1,
-
         _id: 0,
       },
     },
@@ -1108,7 +1351,7 @@ const getMenuItemsAndCostingFromDB = async (
 
 const getRawMaterialConsumptionSalesFromDB = async (
   query: Record<string, any>,
-  user: any
+  user: any,
 ) => {
   const startDate = new Date(query.startDate);
   const endDate = new Date(query.endDate);
@@ -1235,7 +1478,7 @@ const getRawMaterialConsumptionSalesFromDB = async (
 // item wise raw materials consumption
 const getItemWiseRawMaterialConsumptionFromDB = async (
   query: Record<string, any>,
-  user: any
+  user: any,
 ) => {
   const startDate = new Date(query.startDate);
   const endDate = new Date(query.endDate);
@@ -1401,7 +1644,7 @@ const getItemWiseRawMaterialConsumptionFromDB = async (
 
 const getSaledDueStatementFromDB = async (
   query: Record<string, any>,
-  user: any
+  user: any,
 ) => {
   const startDate = new Date(query.startDate);
   const endDate = new Date(query.endDate);
@@ -1479,9 +1722,119 @@ const getSaledDueStatementFromDB = async (
 
 // waite wise sales
 
+const getWaiterWiseSalesFromDB_v2 = async (
+  query: Record<string, any>,
+  user: any,
+) => {
+  const { endDate, startDate } = DateFormatter(
+    query?.startDate,
+    query?.endDate,
+  );
+  const branch = user?.branch || query.branch;
+
+  let branchInfo = branch ? await Branch.findById(branch) : null;
+
+  const pipelineProvider = (branchId: string) => {
+    const matchStage: PipelineStage = {
+      $match: {
+        createdAt: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+        ...(branchId && { branch: new mongoose.Types.ObjectId(branchId) }),
+      },
+    };
+    
+    return [
+      matchStage,
+      {
+        $lookup: {
+          from: "branches",
+          localField: "branch",
+          foreignField: "_id",
+          as: "branchDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$branchDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "waiters",
+          localField: "waiter",
+          foreignField: "_id",
+          as: "waiterDetails",
+        },
+      },
+      {
+        $unwind: { path: "$waiterDetails", preserveNullAndEmptyArrays: true },
+      },
+      {
+        $group: {
+          _id: branchId
+            ? {
+                id: "$waiterDetails._id",
+                branchName: "$branchDetails.name",
+                name: "$waiterDetails.name",
+              }
+            : {
+                branchName: "$branchDetails.name",
+                waiterName: "$waiterDetails.name",
+              },
+          totalAmount: { $sum: "$totalBill" },
+        },
+      },
+      {
+        $project: {
+          ...(branchId
+            ? {
+                branchName: "$_id.branchName",
+                waiterName: "$_id.name",
+                totalAmount: 1,
+              }
+            : {
+                branchName: "$_id.branchName",
+                waiterName: "$_id.waiterName",
+                totalAmount: 1,
+              }),
+          _id: 0,
+        },
+      },
+    ] as PipelineStage[];
+  };
+
+  if (!branch) {
+    if (user?.role === ENUM_USER.ADMIN || user.role === ENUM_USER.SUPER_ADMIN) {
+      const branches = await Branch.find();
+      const promises = branches.map(async (b) => {
+        const result = await Order.aggregate(pipelineProvider(b?._id?.toString() as string));
+        return {
+          branchInfo: b,
+          result,
+        };
+      });
+      const result = await Promise.all(promises);
+      return result;
+    } else {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Branch not provided");
+    }
+  }
+
+  const result = await Order.aggregate(pipelineProvider(branch));
+
+  if (!branchInfo && branch) {
+    branchInfo = await Branch.findById(branch);
+  }
+
+  return [{ branchInfo, result }];
+};
+
 const getWaiteWiseSalesFromDB = async (
   query: Record<string, any>,
-  user: any
+  user: any,
 ) => {
   const startDate = new Date(query.startDate);
   const endDate = new Date(query.endDate);
@@ -1568,7 +1921,7 @@ const getWaiteWiseSalesFromDB = async (
 
 const getWaiterWiseSalesStatementFromDB = async (
   query: Record<string, any>,
-  user: any
+  user: any,
 ) => {
   const startDate = new Date(query.startDate);
   const endDate = new Date(query.endDate);
@@ -1815,6 +2168,190 @@ const getDashboardStatisticsDataFromDB = async () => {
   return { branchWiseData };
 };
 
+const getMenuItemConsumptionReportFromDB = async (
+  query: Record<string, any>,
+  user: any,
+) => {
+  const { startDate, endDate } = DateFormatter(
+    query?.startDate,
+    query?.endDate,
+  );
+  const branch = user?.branch || query.branch;
+  const menuItem = query.menuItem;
+
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        createdAt: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+        ...(branch && mongoose.Types.ObjectId.isValid(branch)
+          ? { branch: new mongoose.Types.ObjectId(branch) }
+          : {}),
+      },
+    },
+    {
+      $unwind: "$items",
+    },
+    ...(menuItem && mongoose.Types.ObjectId.isValid(menuItem)
+      ? [
+          {
+            $match: {
+              "items.item": new mongoose.Types.ObjectId(menuItem),
+            },
+          },
+        ]
+      : []),
+    {
+      $lookup: {
+        from: "menuitemconsumptions",
+        localField: "items.item",
+        foreignField: "_id",
+        as: "itemDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$itemDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $group: {
+        _id: {
+          item: "$items.item",
+          branch: "$branch",
+          itemName: "$itemDetails.itemName",
+          itemCode: "$itemDetails.itemCode",
+        },
+        totalQuantity: { $sum: { $ifNull: ["$items.qty", 0] } },
+        totalRevenue: {
+          $sum: {
+            $multiply: [
+              { $ifNull: ["$items.qty", 0] },
+              { $ifNull: ["$items.rate", 0] },
+            ],
+          },
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "branches",
+        localField: "_id.branch",
+        foreignField: "_id",
+        as: "branchInfo",
+      },
+    },
+    {
+      $unwind: {
+        path: "$branchInfo",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        branchId: "$_id.branch",
+        branchName: { $ifNull: ["$branchInfo.name", "Unknown Branch"] },
+        itemId: "$_id.item",
+        itemName: { $ifNull: ["$_id.itemName", "Unknown Item"] },
+        itemCode: { $ifNull: ["$_id.itemCode", "N/A"] },
+        totalQuantity: 1,
+        totalRevenue: 1,
+      },
+    },
+    {
+      $sort: { totalQuantity: -1 },
+    },
+  ];
+
+  const result = await Order.aggregate(pipeline);
+  return result;
+};
+
+const getDueSalesStatementReportFromDB = async (
+  query: Record<string, any>,
+  user: any,
+) => {
+  const { startDate, endDate } = DateFormatter(
+    query?.startDate,
+    query?.endDate,
+  );
+  const branch = user?.branch || query.branch;
+  const customer = query.customer;
+
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        createdAt: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+        due: { $gt: 0 },
+        ...(branch && mongoose.Types.ObjectId.isValid(branch)
+          ? { branch: new mongoose.Types.ObjectId(branch) }
+          : {}),
+        ...(customer && mongoose.Types.ObjectId.isValid(customer)
+          ? { customer: new mongoose.Types.ObjectId(customer) }
+          : {}),
+      },
+    },
+    {
+      $lookup: {
+        from: "customers",
+        localField: "customer",
+        foreignField: "_id",
+        as: "customerInfo",
+      },
+    },
+    {
+      $unwind: {
+        path: "$customerInfo",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "branches",
+        localField: "branch",
+        foreignField: "_id",
+        as: "branchInfo",
+      },
+    },
+    {
+      $unwind: {
+        path: "$branchInfo",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        billNo: 1,
+        date: "$createdAt",
+        branchId: "$branch",
+        branchName: { $ifNull: ["$branchInfo.name", "Unknown Branch"] },
+        customerName: {
+          $ifNull: ["$customerInfo.name", "$customer.name", "Walking Customer"],
+        },
+        customerPhone: { $ifNull: ["$customerInfo.phone", "N/A"] },
+        totalBill: { $ifNull: ["$totalBill", 0] },
+        paidAmount: { $ifNull: ["$paid", 0] },
+        dueAmount: { $ifNull: ["$due", 0] },
+        netPayable: { $ifNull: ["$netPayable", 0] },
+      },
+    },
+    {
+      $sort: { date: -1 },
+    },
+  ];
+
+  const result = await Order.aggregate(pipeline);
+  return result;
+};
+
 export const reportServices = {
   getDailyStatementFromDB,
   getDailySalesStatementSummeryFromDB,
@@ -1823,10 +2360,14 @@ export const reportServices = {
   getMenuItemsAndConsumptionFromDB,
   getMenuItemsAndCostingFromDB,
   getRawMaterialConsumptionSalesFromDB,
+  getRawMaterialConsumptionServiceFromDB,
   getItemWiseRawMaterialConsumptionFromDB,
   getSaledDueStatementFromDB,
   getWaiteWiseSalesFromDB,
+  getWaiterWiseSalesFromDB_v2,
   getWaiterWiseSalesStatementFromDB,
   getDashboardStatisticsDataFromDB,
   getItemWiseSalesStatementFormDB_v2,
+  getMenuItemConsumptionReportFromDB,
+  getDueSalesStatementReportFromDB,
 };

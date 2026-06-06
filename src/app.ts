@@ -9,7 +9,7 @@ import config from "./app/config";
 const app: Application = express();
 
 app.use(express.json());
-app.use(cors({ origin: config.front_end_url, credentials: true }));
+app.use(cors({ origin: "*", credentials: true }));
 app.use(cookieParser());
 
 // Cache server
