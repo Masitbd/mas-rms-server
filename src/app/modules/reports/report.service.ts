@@ -3,6 +3,7 @@ import mongoose, { PipelineStage } from "mongoose";
 import { Order } from "../order/order.model";
 
 import MenuItemConsumption from "../rawMaterialConsumption/rawMaterialConsumption.model";
+import { KitchenOrder } from "../kitchenOrders/kitchenOrder.model";
 import { Branch } from "../branch/branch.model";
 import { DateFormatter } from "../../../utils/dateProvider";
 import { itemWiseSalesStatementPipelineProvider } from "./report.helper";
@@ -639,10 +640,7 @@ const getRawMaterialConsumptionServiceFromDB = async (
               $cond: {
                 if: { $gt: [{ $ifNull: ["$_id.conversion", 0] }, 0] },
                 then: {
-                  $divide: [
-                    { $ifNull: ["$_id.rate", 0] },
-                    "$_id.conversion",
-                  ],
+                  $divide: [{ $ifNull: ["$_id.rate", 0] }, "$_id.conversion"],
                 },
                 else: { $ifNull: ["$_id.rate", 0] },
               },
@@ -675,10 +673,7 @@ const getRawMaterialConsumptionServiceFromDB = async (
                 $cond: {
                   if: { $gt: [{ $ifNull: ["$_id.conversion", 0] }, 0] },
                   then: {
-                    $divide: [
-                      { $ifNull: ["$_id.rate", 0] },
-                      "$_id.conversion",
-                    ],
+                    $divide: [{ $ifNull: ["$_id.rate", 0] }, "$_id.conversion"],
                   },
                   else: { $ifNull: ["$_id.rate", 0] },
                 },
@@ -1234,7 +1229,12 @@ const getMenuItemsAndCostingFromDB = async (
                 { $ifNull: ["$consumptions.qty", 0] },
                 {
                   $cond: {
-                    if: { $gt: [{ $ifNull: ["$rawMaterialsDetails.conversion", 0] }, 0] },
+                    if: {
+                      $gt: [
+                        { $ifNull: ["$rawMaterialsDetails.conversion", 0] },
+                        0,
+                      ],
+                    },
                     then: {
                       $divide: [
                         { $ifNull: ["$rawMaterialsDetails.rate", 0] },
@@ -1255,7 +1255,12 @@ const getMenuItemsAndCostingFromDB = async (
               { $ifNull: ["$consumptions.qty", 0] },
               {
                 $cond: {
-                  if: { $gt: [{ $ifNull: ["$rawMaterialsDetails.conversion", 0] }, 0] },
+                  if: {
+                    $gt: [
+                      { $ifNull: ["$rawMaterialsDetails.conversion", 0] },
+                      0,
+                    ],
+                  },
                   then: {
                     $divide: [
                       { $ifNull: ["$rawMaterialsDetails.rate", 0] },
@@ -1270,11 +1275,7 @@ const getMenuItemsAndCostingFromDB = async (
         },
         totalConsumptionCount: {
           $sum: {
-            $cond: [
-              { $ifNull: ["$rawMaterialsDetails._id", false] },
-              1,
-              0,
-            ],
+            $cond: [{ $ifNull: ["$rawMaterialsDetails._id", false] }, 1, 0],
           },
         },
       },
@@ -1744,7 +1745,7 @@ const getWaiterWiseSalesFromDB_v2 = async (
         ...(branchId && { branch: new mongoose.Types.ObjectId(branchId) }),
       },
     };
-    
+
     return [
       matchStage,
       {
@@ -1810,7 +1811,9 @@ const getWaiterWiseSalesFromDB_v2 = async (
     if (user?.role === ENUM_USER.ADMIN || user.role === ENUM_USER.SUPER_ADMIN) {
       const branches = await Branch.find();
       const promises = branches.map(async (b) => {
-        const result = await Order.aggregate(pipelineProvider(b?._id?.toString() as string));
+        const result = await Order.aggregate(
+          pipelineProvider(b?._id?.toString() as string),
+        );
         return {
           branchInfo: b,
           result,
@@ -2352,6 +2355,248 @@ const getDueSalesStatementReportFromDB = async (
   return result;
 };
 
+const getKitchenOrderCostReportFromDB = async (
+  query: Record<string, any>,
+  user: any,
+) => {
+  const { endDate, startDate } = DateFormatter(
+    query?.startDate,
+    query?.endDate,
+  );
+  const branch = user?.branch || query.branch;
+  const status = query.status;
+
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        createdAt: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+        ...(status ? { status } : {}),
+      },
+    },
+    {
+      $lookup: {
+        from: "orders",
+        localField: "orderId",
+        foreignField: "_id",
+        as: "orderDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$orderDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+  ];
+
+  if (branch) {
+    pipeline.push({
+      $match: {
+        "orderDetails.branch": new mongoose.Types.ObjectId(branch),
+      },
+    });
+  }
+
+  pipeline.push(
+    {
+      $lookup: {
+        from: "branches",
+        localField: "orderDetails.branch",
+        foreignField: "_id",
+        as: "branchDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$branchDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $unwind: {
+        path: "$items",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "menuitemconsumptions",
+        let: { itemCode: "$items.itemCode", itemName: "$items.itemName" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $or: [
+                  {
+                    $and: [
+                      { $ne: ["$$itemCode", null] },
+                      { $eq: ["$itemCode", "$$itemCode"] },
+                    ],
+                  },
+                  {
+                    $and: [
+                      { $ne: ["$$itemName", null] },
+                      { $eq: ["$itemName", "$$itemName"] },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        as: "consumptionDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$consumptionDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $unwind: {
+        path: "$consumptionDetails.consumptions",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "rawmaterials",
+        localField: "consumptionDetails.consumptions.item",
+        foreignField: "_id",
+        as: "rawMaterialsDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$rawMaterialsDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $group: {
+        _id: {
+          kitchenOrderId: "$_id",
+          itemCode: "$items.itemCode",
+          itemName: "$items.itemName",
+        },
+        kitchenOrderNo: { $first: "$kitchenOrderNo" },
+        billNo: { $first: "$billNo" },
+        status: { $first: "$status" },
+        remark: { $first: "$remark" },
+        tableName: { $first: "$tableName" },
+        waiterName: { $first: "$waiterName" },
+        createdAt: { $first: "$createdAt" },
+        branchName: { $first: "$branchDetails.name" },
+        qty: { $first: "$items.qty" },
+        rate: { $first: "$items.rate" },
+        unitCostPrice: {
+          $sum: {
+            $multiply: [
+              { $ifNull: ["$consumptionDetails.consumptions.qty", 0] },
+              { $ifNull: ["$rawMaterialsDetails.rate", 0] },
+            ],
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        kitchenOrderId: "$_id.kitchenOrderId",
+        kitchenOrderNo: 1,
+        billNo: 1,
+        status: 1,
+        remark: 1,
+        tableName: 1,
+        waiterName: 1,
+        createdAt: 1,
+        branchName: 1,
+        item: {
+          $cond: {
+            if: {
+              $and: [
+                { $eq: ["$_id.itemCode", null] },
+                { $eq: ["$_id.itemName", null] },
+              ],
+            },
+            then: "$$REMOVE",
+            else: {
+              itemCode: "$_id.itemCode",
+              itemName: "$_id.itemName",
+              qty: { $ifNull: ["$qty", 0] },
+              rate: { $ifNull: ["$rate", 0] },
+              unitCostPrice: "$unitCostPrice",
+              totalCostPrice: {
+                $multiply: ["$unitCostPrice", { $ifNull: ["$qty", 0] }],
+              },
+            },
+          },
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$kitchenOrderId",
+        kitchenOrderNo: { $first: "$kitchenOrderNo" },
+        billNo: { $first: "$billNo" },
+        status: { $first: "$status" },
+        remark: { $first: "$remark" },
+        tableName: { $first: "$tableName" },
+        waiterName: { $first: "$waiterName" },
+        createdAt: { $first: "$createdAt" },
+        branchName: { $first: "$branchName" },
+        items: {
+          $push: "$item",
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        kitchenOrderNo: 1,
+        billNo: 1,
+        status: 1,
+        remark: 1,
+        tableName: 1,
+        waiterName: 1,
+        createdAt: 1,
+        branchName: 1,
+        items: {
+          $filter: {
+            input: "$items",
+            as: "it",
+            cond: { $ne: ["$$it", null] },
+          },
+        },
+        totalOrderCostPrice: {
+          $sum: {
+            $map: {
+              input: {
+                $filter: {
+                  input: "$items",
+                  as: "it",
+                  cond: { $ne: ["$$it", null] },
+                },
+              },
+              as: "it",
+              in: "$$it.totalCostPrice",
+            },
+          },
+        },
+      },
+    },
+    {
+      $sort: { createdAt: -1 },
+    },
+  );
+
+  const result = await KitchenOrder.aggregate(pipeline);
+  return result;
+};
+
 export const reportServices = {
   getDailyStatementFromDB,
   getDailySalesStatementSummeryFromDB,
@@ -2370,4 +2615,5 @@ export const reportServices = {
   getItemWiseSalesStatementFormDB_v2,
   getMenuItemConsumptionReportFromDB,
   getDueSalesStatementReportFromDB,
+  getKitchenOrderCostReportFromDB,
 };

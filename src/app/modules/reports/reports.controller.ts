@@ -239,6 +239,21 @@ const getDashboardStatisticsData = catchAsync(
   },
 );
 
+const getKitchenOrderCostReport = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await reportServices.getKitchenOrderCostReportFromDB(
+      req.query,
+      req.user,
+    );
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: "Kitchen orders cost report retrieved successfully",
+      data: result,
+    });
+  },
+);
+
 export const reportControllers = {
   getDailyStatement,
   getDailySatesStatementSummery,
@@ -257,4 +272,5 @@ export const reportControllers = {
   getDashboardStatisticsData,
   getItemWiseSalesStatement_v2,
   getRawMaterialConsumption,
+  getKitchenOrderCostReport,
 };

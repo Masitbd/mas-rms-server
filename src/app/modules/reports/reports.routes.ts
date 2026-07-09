@@ -60,5 +60,10 @@ routes.get(
   auth(),
   reportControllers.getDashboardStatisticsData
 );
+routes.get(
+  "/kitchen-orders-cost",
+  auth(),
+  reportControllers.getKitchenOrderCostReport
+);
 
 export const reportRoutes = routes;
